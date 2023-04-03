@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SCPP-WinUI-CS (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "SCPP-WinUI-CS (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
