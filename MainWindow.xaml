@@ -16,12 +16,12 @@
         IsBackButtonVisible="Collapsed">
         
         <NavigationView.MenuItems>
-            <NavigationViewItem Content="PAGE_1" x:Name="NavItem_1" />
             <NavigationViewItem Content="DashBoard" x:Name="dashboard" >
                 <NavigationViewItem.Icon>
                     <SymbolIcon Symbol="World" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="PAGE_1" x:Name="NavItem_1" />
         </NavigationView.MenuItems>
 
         <Frame x:Name="contentFrame">

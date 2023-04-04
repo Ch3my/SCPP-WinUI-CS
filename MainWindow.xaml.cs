@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.AccessControl;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
@@ -29,6 +30,9 @@ namespace SCPP_WinUI_CS
         public MainWindow()
         {
             this.InitializeComponent();
+            // Siempre comenzamos en el DashBoard
+            contentFrame.Navigate(typeof(Dashboard));
+            navView.SelectedItem = navView.MenuItems[0];
         }
 
 
@@ -39,7 +43,7 @@ namespace SCPP_WinUI_CS
 
             // Esta logica podria existir en un archivo propio?? No se como se haria xD
 
-            Type pageType = typeof(BlankPage1);
+            Type pageType = typeof(Dashboard);
             NavigationViewItem selectedNavItem = (NavigationViewItem)args.SelectedItem;
 
             if (selectedNavItem.Name == "dashboard")

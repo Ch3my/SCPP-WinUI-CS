@@ -19,5 +19,9 @@ namespace SCPP_WinUI_CS
         public int FkCategoria { get; set; }
         [JsonPropertyName("fk_tipoDoc")]
         public int FkTipoDoc{ get; set; }
+        [JsonPropertyName("fecha")]
+        public DateOnly Fecha { get; set; }
+        [JsonPropertyName("categoria")]
+        public Categoria Categoria{ get; set; }
     }
 }
