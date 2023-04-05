@@ -12,6 +12,10 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <local:DateOnlyToDateTimeOffsetConverter x:Key="DateOnlyToDateTimeOffsetConverter" />
+    </Page.Resources>
+
     <Grid>
         <!--  Importante 3 Columnas porque se considera el GridSplitter  -->
         <Grid.ColumnDefinitions>
@@ -36,16 +40,21 @@
                 Text="Documentos" />
 
             <!--  Barra de Botones  -->
-            <StackPanel Grid.Row="1" Margin="10,5,0,0">
-                <Button Click="AddDoc_Click">
-                    <StackPanel Orientation="Horizontal">
-                        <Image
-                            Width="32"
-                            Height="32"
-                            Source="Assets\add-doc-icon.png" />
-                    </StackPanel>
+            <Grid Grid.Row="1" Margin="10,5,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
+
+                <Button Grid.Column="0" Click="AddDoc_Click">
+                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xECC8;" />
                 </Button>
-            </StackPanel>
+                <Button Grid.Column="1" Click="RefreshDocs_Click">
+                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE72C;" />
+                </Button>
+
+            </Grid>
 
             <StackPanel
                 Grid.Row="2"
@@ -88,6 +97,7 @@
                                 VerticalAlignment="Center"
                                 Text="Tipo Doc" />
                             <ComboBox
+                                x:Name="getDocsFormTipoDocInput"
                                 Grid.Column="1"
                                 Width="Auto"
                                 HorizontalAlignment="Stretch"
@@ -110,6 +120,7 @@
                                 VerticalAlignment="Center"
                                 Text="Categoria" />
                             <ComboBox
+                                x:Name="getDocsFormCategInput"
                                 Grid.Column="1"
                                 Width="Auto"
                                 HorizontalAlignment="Stretch"
@@ -143,7 +154,12 @@
                                 VerticalAlignment="Center"
                                 Text="Fecha Ini" />
 
-                            <CalendarDatePicker Grid.Column="1" HorizontalAlignment="Stretch" />
+                            <CalendarDatePicker
+                                x:Name="getDocsFormFecIniInput"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                Date="{x:Bind getDocsForm.fechaInicio, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
+                                DateChanged="getDocsFormFecIniInput_DateChanged" />
                         </Grid>
                     </Grid>
                     <Grid Grid.Column="1">
@@ -157,7 +173,11 @@
                                 Margin="0,0,10,0"
                                 VerticalAlignment="Center"
                                 Text="Fecha Fin" />
-                            <CalendarDatePicker Grid.Column="1" HorizontalAlignment="Stretch" />
+                            <CalendarDatePicker
+                                x:Name="getDocsFormFecFinInput"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                Date="{x:Bind getDocsForm.fechaTermino, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
                         </Grid>
                     </Grid>
                 </Grid>
@@ -167,9 +187,11 @@
                 Grid.Row="3"
                 AlternatingRowBackground="{ThemeResource SystemControlBackgroundAltHighBrush}"
                 AutoGenerateColumns="False"
+                IsReadOnly="True"
                 ItemsSource="{x:Bind gridRows}"
                 RowEditEnded="DataGrid_RowEditEnded"
-                RowEditEnding="DataGrid_RowEditEnding">
+                RowEditEnding="DataGrid_RowEditEnding"
+                SelectionChanged="DataGrid_SelectionChanged">
                 <toolkit:DataGrid.Columns>
                     <toolkit:DataGridTextColumn
                         Binding="{Binding Path=Fecha}"
@@ -212,10 +234,7 @@
                     Grid.Row="0"
                     Margin="0"
                     Padding="0"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    AutoCollapseCountThreshold="4"
-                    BladeMode="Fullscreen">
+                    AutoCollapseCountThreshold="4">
 
                     <toolkit:BladeItem
                         x:Name="AgregarDocumentoBlade"
@@ -232,22 +251,30 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.RowSpacing>10</Grid.RowSpacing>
 
-                            <!--  Barra de Botones  -->
-                            <StackPanel Grid.Row="0" Margin="0,5,0,0">
-                                <Button Click="SaveNewDoc_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image
-                                            Width="32"
-                                            Height="32"
-                                            Source="Assets\save-doc-icon.png" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
+                            <InfoBar
+                                x:Name="AddDocInfoBar"
+                                Grid.Row="0"
+                                IsOpen="False"
+                                Opacity="0"
+                                OpacityTransition="{x:Bind MyOpacityTransition}"
+                                Severity="Informational" />
 
+                            <!--  Barra de Botones  -->
                             <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
+                                <Button Grid.Column="0" Click="SaveNewDoc_Click">
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
+                                </Button>
+                            </Grid>
+
+                            <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
@@ -260,9 +287,10 @@
                                 <NumberBox
                                     x:Name="montoInput"
                                     Grid.Column="1"
-                                    NumberFormatter="{x:Bind Path=IntFormatter, Mode=OneTime}" />
+                                    NumberFormatter="{x:Bind Path=IntFormatter, Mode=OneTime}"
+                                    Value="{x:Bind newDoc.Monto, Mode=TwoWay}" />
                             </Grid>
-                            <Grid Grid.Row="2">
+                            <Grid Grid.Row="3">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
@@ -273,9 +301,9 @@
                                     Grid.Column="0"
                                     VerticalAlignment="Center"
                                     Text="Proposito" />
-                                <TextBox Grid.Column="1" />
+                                <TextBox Grid.Column="1" Text="{x:Bind newDoc.Proposito, Mode=TwoWay}" />
                             </Grid>
-                            <Grid Grid.Row="3">
+                            <Grid Grid.Row="4">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
@@ -288,9 +316,10 @@
                                 <CalendarDatePicker
                                     x:Name="newDocFechaInput"
                                     Grid.Column="1"
-                                    HorizontalAlignment="Stretch" />
+                                    HorizontalAlignment="Stretch"
+                                    Date="{x:Bind newDoc.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
                             </Grid>
-                            <Grid Grid.Row="4">
+                            <Grid Grid.Row="5">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
@@ -303,13 +332,13 @@
                                 <ComboBox
                                     Grid.Column="1"
                                     Width="Auto"
-                                    HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Item 1" />
-                                    <ComboBoxItem Content="Item 2" />
-                                    <ComboBoxItem Content="Item 3" />
-                                </ComboBox>
+                                    HorizontalAlignment="Stretch"
+                                    DisplayMemberPath="Descripcion"
+                                    ItemsSource="{x:Bind tipoDocs}"
+                                    SelectedValue="{x:Bind newDoc.FkTipoDoc, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
                             </Grid>
-                            <Grid Grid.Row="5">
+                            <Grid Grid.Row="6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
@@ -322,15 +351,134 @@
                                 <ComboBox
                                     Grid.Column="1"
                                     Width="Auto"
-                                    HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="Item 1" />
-                                    <ComboBoxItem Content="Item 2" />
-                                    <ComboBoxItem Content="Item 3" />
-                                </ComboBox>
+                                    HorizontalAlignment="Stretch"
+                                    DisplayMemberPath="Descripcion"
+                                    ItemsSource="{x:Bind categorias}"
+                                    SelectedValue="{x:Bind newDoc.FkCategoria, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
                             </Grid>
                         </Grid>
+                    </toolkit:BladeItem>
+                    <!--  Editar DOC  -->
+                    <toolkit:BladeItem
+                        x:Name="EditDocumentoBlade"
+                        HorizontalAlignment="Stretch"
+                        Header="Editar Documento"
+                        IsOpen="False"
+                        TitleBarBackground="CadetBlue">
 
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.RowSpacing>10</Grid.RowSpacing>
 
+                            <InfoBar
+                                x:Name="EditDocInfoBar"
+                                Grid.Row="0"
+                                IsOpen="False"
+                                Opacity="0"
+                                OpacityTransition="{x:Bind MyOpacityTransition}"
+                                Severity="Informational" />
+
+                            <!--  Barra de Botones  -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
+                                <Button Grid.Column="0" Click="SaveEditDoc_Click">
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
+                                </Button>
+                            </Grid>
+
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="Monto" />
+                                <NumberBox
+                                    Grid.Column="1"
+                                    NumberFormatter="{x:Bind Path=IntFormatter, Mode=OneTime}"
+                                    Value="{x:Bind editDoc.Monto, Mode=TwoWay}" />
+                            </Grid>
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="Proposito" />
+                                <TextBox Grid.Column="1" Text="{x:Bind editDoc.Proposito, Mode=TwoWay}" />
+                            </Grid>
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="Fecha" />
+                                <CalendarDatePicker
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    Date="{x:Bind editDoc.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
+                            </Grid>
+                            <Grid Grid.Row="5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="Tipo Doc" />
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Width="Auto"
+                                    HorizontalAlignment="Stretch"
+                                    DisplayMemberPath="Descripcion"
+                                    ItemsSource="{x:Bind tipoDocs}"
+                                    SelectedValue="{x:Bind editDoc.FkTipoDoc, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
+                            </Grid>
+                            <Grid Grid.Row="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="Categoria" />
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Width="Auto"
+                                    HorizontalAlignment="Stretch"
+                                    DisplayMemberPath="Descripcion"
+                                    ItemsSource="{x:Bind categorias}"
+                                    SelectedValue="{x:Bind editDoc.FkCategoria, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
+                            </Grid>
+                        </Grid>
                     </toolkit:BladeItem>
                 </toolkit:BladeView>
 

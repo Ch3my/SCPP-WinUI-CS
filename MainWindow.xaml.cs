@@ -31,7 +31,7 @@ namespace SCPP_WinUI_CS
         {
             this.InitializeComponent();
             // Siempre comenzamos en el DashBoard
-            contentFrame.Navigate(typeof(Dashboard));
+            //contentFrame.Navigate(typeof(Dashboard));
             navView.SelectedItem = navView.MenuItems[0];
         }
 
