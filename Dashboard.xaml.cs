@@ -25,6 +25,9 @@ using Windows.Globalization.NumberFormatting;
 using Windows.UI.Core;
 using CommunityToolkit.WinUI;
 using Microsoft.UI.Dispatching;
+using System.Timers;
+using Windows.Media.Protection.PlayReady;
+using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -38,11 +41,11 @@ namespace SCPP_WinUI_CS
     {
         // Para formatear dentro del NumberBox Repo de Ejemplo https://github.com/sonnemaf/NumberBoxTest/blob/master/NumberBoxTest/MainPage.xaml.cs
         private DecimalFormatter IntFormatter { get; } =
-            new DecimalFormatter(new[] { "nl-NL" }, "NL")
+            new DecimalFormatter
             {
                 IsGrouped = true,
                 FractionDigits = 0,
-                NumberRounder = new IncrementNumberRounder(),
+                IntegerDigits = 1
             };
 
         public Documento newDoc = new();
@@ -78,7 +81,6 @@ namespace SCPP_WinUI_CS
             this.InitializeComponent();
             // Al iniciar setea las fecha Inicio y termino antes de llamar a API
             this.SetFechaIniTerTipoDoc();
-            int test = -1;
             this.GetCategorias();
             this.GetTipoDoc();
             this.GetDocs();
@@ -138,7 +140,10 @@ namespace SCPP_WinUI_CS
                $"/documentos?sessionHash=v03ex42bdrqrilrrybjgk&{urlParams}"
                );
             // response.EnsureSuccessStatusCode se podria cambiar a otro tipo de control de Error
-            response.EnsureSuccessStatusCode();
+            if(!response.IsSuccessStatusCode)
+            {
+                return;
+            }
             // Toma el JSON y lo parsea a una lista de Documentos
             List<Documento> docsList = JsonSerializer.Deserialize<List<Documento>>(response.Content.ReadAsStringAsync().Result);
             gridRows.Clear();
@@ -202,69 +207,21 @@ namespace SCPP_WinUI_CS
             test.Add("fecha", newDoc.Fecha.ToString("yyyy-MM-dd"));
 
             HttpResponseMessage response = await App.httpClient.PostAsJsonAsync(
-               $"/documentos",
-               test,
-               new JsonSerializerOptions
+               $"/documentos", test, new JsonSerializerOptions
                {
                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-               }
-               );
-
-            var timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(3);
-            DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+               });
 
             if (!response.IsSuccessStatusCode)
             {
-                AddDocInfoBar.Title = "Error";
-                AddDocInfoBar.Message = "Durante la comunicacion con la API";
-                AddDocInfoBar.IsOpen = true;
-                AddDocInfoBar.Opacity = 1;
-
-                // Handle the Tick event to update the UI
-                timer.Tick += (sender, args) =>
-                {
-                    dispatcherQueue.TryEnqueue(() =>
-                    {
-                        // Update the UI component here
-                        AddDocInfoBar.Opacity = 0;
-                        AddDocInfoBar.IsOpen = false;
-                    });
-
-                    // Stop the timer after the update is complete
-                    timer.Stop();
-                };
-
-                // Start the timer
-                timer.Start();
-                return;
+                DocumentosNotification.Content = "Durante la comunicacion con la API";
+                DocumentosNotification.Show(3000);
             }
-
             this.GetDocs();
             newDoc.Reset();
-            AddDocInfoBar.Title = "Exito!";
-            AddDocInfoBar.Message = "Documento Grabado correctamente";
-            AddDocInfoBar.IsOpen = true;
-            AddDocInfoBar.Opacity = 1;
 
-            // Creamos una manera de poder modificar la UI desde otro Thread 
-            // el Otro Thread espera 3 segundos antes de ejecutarse
-            // Handle the Tick event to update the UI
-            timer.Tick += (sender, args) =>
-            {
-                dispatcherQueue.TryEnqueue(() =>
-                {
-                    // Update the UI component here
-                    AddDocInfoBar.Opacity = 0;
-                    AddDocInfoBar.IsOpen = false;
-                });
-
-                // Stop the timer after the update is complete
-                timer.Stop();
-            };
-
-            // Start the timer
-            timer.Start();
+            DocumentosNotification.Content = "Documento Grabado correctamente";
+            DocumentosNotification.Show(3000);
         }
 
         private void getDocsFormFecIniInput_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
@@ -279,6 +236,11 @@ namespace SCPP_WinUI_CS
 
         async private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (e.AddedItems.Count == 0)
+            {
+                editDoc.Reset();
+                return;
+            }
             GridRow selectedRow = (GridRow)e.AddedItems[0];
 
             Dictionary<string, object> urlArg = new Dictionary<string, object>();
@@ -297,18 +259,108 @@ namespace SCPP_WinUI_CS
                 return;
             }
             List<Documento> docsList = JsonSerializer.Deserialize<List<Documento>>(response.Content.ReadAsStringAsync().Result);
+            editDoc.Reset();
             editDoc.Monto = docsList[0].Monto;
             editDoc.Id = docsList[0].Id;
             editDoc.Proposito = docsList[0].Proposito;
             editDoc.FkTipoDoc = docsList[0].FkTipoDoc;
-            editDoc.FkCategoria= docsList[0].FkCategoria;
-            editDoc.Fecha= docsList[0].Fecha;
+            editDoc.FkCategoria = docsList[0].FkCategoria;
+            editDoc.Fecha = docsList[0].Fecha;
             EditDocumentoBlade.IsOpen = true;
         }
 
-        private void SaveEditDoc_Click(object sender, RoutedEventArgs e)
+        async private void SaveEditDoc_Click(object sender, RoutedEventArgs e)
         {
+            // Se deja la implementacion de Timer solo como ejemplo de como modificar el UI
+            // desde otro hilo
+            var timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(3);
+            DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
 
+            JsonObject apiArg = new JsonObject();
+            apiArg.Add("sessionHash", "v03ex42bdrqrilrrybjgk");
+            apiArg.Add("id", editDoc.Id);
+            apiArg.Add("fk_categoria", editDoc.FkCategoria);
+            apiArg.Add("fk_tipoDoc", editDoc.FkTipoDoc);
+            apiArg.Add("proposito", editDoc.Proposito);
+            apiArg.Add("monto", editDoc.Monto);
+            apiArg.Add("fecha", editDoc.Fecha.ToString("yyyy-MM-dd"));
+
+            HttpResponseMessage response = await App.httpClient.PutAsJsonAsync(
+               $"/documentos", apiArg, new JsonSerializerOptions
+               {
+                   DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+               });
+            if (!response.IsSuccessStatusCode)
+            {
+                EditDocInfoBar.Title = "Error";
+                EditDocInfoBar.Message = "Durante la comunicacion con la API";
+                EditDocInfoBar.IsOpen = true;
+                EditDocInfoBar.Opacity = 1;
+
+                timer.Tick += (sender, args) =>
+                {
+                    dispatcherQueue.TryEnqueue(async () =>
+                    {
+                        EditDocInfoBar.Opacity = 0;
+                        await Task.Delay(TimeSpan.FromMilliseconds(500));
+                        EditDocInfoBar.IsOpen = false;
+                    });
+                    timer.Stop();
+                };
+                timer.Start();
+                return;
+            }
+            this.GetDocs();
+            EditDocumentoBlade.IsOpen = false;
+            editDoc.Reset();
+
+            DocumentosNotification.Content = "Documento actualizado correctamente";
+            DocumentosNotification.Background = AppColors.GreenBrush;
+            DocumentosNotification.Show(3000);
+        }
+
+        async private void DeleteDoc_Click(object sender, RoutedEventArgs e)
+        {
+            var timer = new DispatcherTimer();
+            timer.Interval = System.TimeSpan.FromSeconds(3);
+            DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+
+            JsonObject apiArg = new JsonObject();
+            apiArg.Add("sessionHash", "v03ex42bdrqrilrrybjgk");
+            apiArg.Add("id", editDoc.Id);
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, "/documentos");
+            request.Content = new StringContent(apiArg.ToJsonString(), Encoding.UTF8, "application/json");
+            request.Headers.Add("X-HTTP-Method-Override", "DELETE");
+            var response = await App.httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                EditDocInfoBar.Title = "Error";
+                EditDocInfoBar.Message = "Durante la comunicacion con la API";
+                EditDocInfoBar.IsOpen = true;
+                EditDocInfoBar.Opacity = 1;
+
+                timer.Tick += (sender, args) =>
+                {
+                    dispatcherQueue.TryEnqueue(async () =>
+                    {
+                        EditDocInfoBar.Opacity = 0;
+                        await Task.Delay(TimeSpan.FromSeconds(0.5));
+                        EditDocInfoBar.IsOpen = false;
+                    });
+                    timer.Stop();
+                };
+                timer.Start();
+                return;
+            }
+            this.GetDocs();
+            EditDocumentoBlade.IsOpen = false;
+            editDoc.Reset();
+
+            DocumentosNotification.Content = "Documento eliminado correctamente";
+            DocumentosNotification.Show(3000);
         }
     }
 

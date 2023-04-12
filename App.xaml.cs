@@ -20,6 +20,9 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using SCPP_WinUI_CS;
+using System.Threading.Tasks;
+using System.Text.Json.Nodes;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -31,7 +34,9 @@ namespace SCPP_WinUI_CS
     /// </summary>
     public partial class App : Application
     {
-        public static readonly HttpClient httpClient = new HttpClient();
+        public static HttpClient httpClient = new HttpClient();
+        public static string sessionHash = "";
+        private Window m_window;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -39,11 +44,15 @@ namespace SCPP_WinUI_CS
         /// </summary>
         public App()
         {
-            // Microsoft recomienda un Clte por App?
-            httpClient.BaseAddress = new Uri("http://localhost:3000/");
-            httpClient.DefaultRequestHeaders.Accept.Clear();
-            httpClient.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
+            // Chequeamos si existe archivo
+            if (Config.CheckConfigFile())
+            {
+                LoadConfig();
+            }
+            if (!Config.CheckConfigFile())
+            {
+                Config.CreateConfigFile();
+            }
 
             this.InitializeComponent();
         }
@@ -58,6 +67,22 @@ namespace SCPP_WinUI_CS
             m_window.Activate();
         }
 
-        private Window m_window;
+        static public void LoadConfig()
+        {
+            JsonObject currentConfig = Config.GetConfig();
+
+            if (!Uri.IsWellFormedUriString(currentConfig["apiPrefix"].ToString(), UriKind.Absolute))
+            {
+                return;
+            }
+            sessionHash = currentConfig["sessionHash"].ToString();
+
+            // Microsoft recomienda un Clte por App?
+            httpClient = new HttpClient();
+            httpClient.BaseAddress = new Uri(currentConfig["apiPrefix"].ToString());
+            httpClient.DefaultRequestHeaders.Accept.Clear();
+            httpClient.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+        }
     }
 }

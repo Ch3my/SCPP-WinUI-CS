@@ -19,13 +19,14 @@
     <Grid>
         <!--  Importante 3 Columnas porque se considera el GridSplitter  -->
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="500" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
@@ -40,7 +41,7 @@
                 Text="Documentos" />
 
             <!--  Barra de Botones  -->
-            <Grid Grid.Row="1" Margin="10,5,0,0">
+            <Grid Grid.Row="2" Margin="10,5,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -48,6 +49,9 @@
                 <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
 
                 <Button Grid.Column="0" Click="AddDoc_Click">
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="A" Modifiers="Control" />
+                    </Button.KeyboardAccelerators>
                     <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xECC8;" />
                 </Button>
                 <Button Grid.Column="1" Click="RefreshDocs_Click">
@@ -57,7 +61,7 @@
             </Grid>
 
             <StackPanel
-                Grid.Row="2"
+                Grid.Row="3"
                 Margin="10"
                 Orientation="Vertical">
                 <!--  Buscar  -->
@@ -184,7 +188,7 @@
             </StackPanel>
 
             <toolkit:DataGrid
-                Grid.Row="3"
+                Grid.Row="4"
                 AlternatingRowBackground="{ThemeResource SystemControlBackgroundAltHighBrush}"
                 AutoGenerateColumns="False"
                 IsReadOnly="True"
@@ -218,6 +222,13 @@
 
                 </toolkit:DataGrid.Columns>
             </toolkit:DataGrid>
+
+            <toolkit:InAppNotification
+                x:Name="DocumentosNotification"
+                Grid.Row="5"
+                AnimationDuration="00:00:00.1000000"
+                ShowDismissButton="True"
+                StackMode="Replace" />
 
         </Grid>
         <!--  Column Grid Splitter  -->
@@ -270,6 +281,9 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
                                 <Button Grid.Column="0" Click="SaveNewDoc_Click">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="S" Modifiers="Control" />
+                                    </Button.KeyboardAccelerators>
                                     <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
                                 </Button>
                             </Grid>
@@ -287,8 +301,9 @@
                                 <NumberBox
                                     x:Name="montoInput"
                                     Grid.Column="1"
-                                    NumberFormatter="{x:Bind Path=IntFormatter, Mode=OneTime}"
-                                    Value="{x:Bind newDoc.Monto, Mode=TwoWay}" />
+                                    Minimum="0"
+                                    NumberFormatter="{x:Bind IntFormatter}"
+                                    Value="{x:Bind newDoc.Monto, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
                             <Grid Grid.Row="3">
                                 <Grid.ColumnDefinitions>
@@ -391,10 +406,20 @@
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
                                 <Button Grid.Column="0" Click="SaveEditDoc_Click">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="E" Modifiers="Control" />
+                                    </Button.KeyboardAccelerators>
                                     <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
+                                </Button>
+                                <Button Grid.Column="1" Click="DeleteDoc_Click">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="D" Modifiers="Control" />
+                                    </Button.KeyboardAccelerators>
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74D;" />
                                 </Button>
                             </Grid>
 
@@ -410,6 +435,7 @@
                                     Text="Monto" />
                                 <NumberBox
                                     Grid.Column="1"
+                                    Minimum="0"
                                     NumberFormatter="{x:Bind Path=IntFormatter, Mode=OneTime}"
                                     Value="{x:Bind editDoc.Monto, Mode=TwoWay}" />
                             </Grid>
@@ -423,7 +449,7 @@
                                     Grid.Column="0"
                                     VerticalAlignment="Center"
                                     Text="Proposito" />
-                                <TextBox Grid.Column="1" Text="{x:Bind editDoc.Proposito, Mode=TwoWay}" />
+                                <TextBox Grid.Column="1" Text="{x:Bind editDoc.Proposito, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
                             <Grid Grid.Row="4">
                                 <Grid.ColumnDefinitions>
