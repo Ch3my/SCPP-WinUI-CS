@@ -34,6 +34,9 @@ namespace SCPP_WinUI_CS
     /// </summary>
     public sealed partial class LoginPage : Page
     {
+        public event EventHandler<UpdateMenuLevelEventArgs> UpdateMenuLevel;
+        // Custom EventArgs class to pass the logged in user information
+
         public LoginPage()
         {
             this.InitializeComponent();
@@ -89,6 +92,8 @@ namespace SCPP_WinUI_CS
                 Config.UpdateConfigFile(updateConfig);
 
                 Frame.Navigate(typeof(Dashboard));
+                // I de In
+                UpdateMenuLevel?.Invoke(this, new UpdateMenuLevelEventArgs("I"));
             }
         }
 

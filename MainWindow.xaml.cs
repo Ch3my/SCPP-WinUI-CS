@@ -40,12 +40,15 @@ namespace SCPP_WinUI_CS
 
         async public void InitialChecks()
         {
-            if(await CheckSession.CheckValid())
+            if (await CheckSession.CheckValid())
             {
+                // Muestra solo menu LoggedIn
+                ShowPrivateMenuItems();
                 contentFrame.Navigate(typeof(Dashboard));
             }
             else
             {
+                // Muestra solo menu LoggedOut
                 HidePrivateMenuItems();
                 contentFrame.Navigate(typeof(LoginPage));
             }
@@ -70,7 +73,8 @@ namespace SCPP_WinUI_CS
                 if (item.Name == "login")
                 {
                     item.Visibility = Visibility.Collapsed;
-                } else
+                }
+                else
                 {
                     item.Visibility = Visibility.Visible;
                 }
@@ -92,21 +96,31 @@ namespace SCPP_WinUI_CS
 
         private void contentFrame_Navigated(object sender, NavigationEventArgs e)
         {
-            // Este evento se llama cuando se hace click y cuando se llama Frame.Navigate directamente
-            // al llamar Frame.Navigate no pasa por el evento navView_SelectionChanged pero si por aca
-            if (e.SourcePageType.Name == "Dashboard")
+            Page currentPage = e.Content as Page;
+
+            if (currentPage is LoginPage loginPage)
             {
-                // Nos aseguramos de mostrar las opciones del menu que corresponden
+                loginPage.UpdateMenuLevel += UpdateMenuLevel;
+                loginPage.Unloaded += (s, args) =>
+                {
+                    // Unloaded Event no causa MemoryLeak, usarlo para desusbribirse es buena practica dice GPT
+                    loginPage.UpdateMenuLevel -= UpdateMenuLevel;
+                };
+            }
+        }
+
+        private void UpdateMenuLevel(object sender, UpdateMenuLevelEventArgs e)
+        {
+            if (e.TargetLevel == "I")
+            {
+                // Is LoggedIn
                 ShowPrivateMenuItems();
             }
-            // Cuando llaman Frame.Navigate el indicador del menu actual no se actualiza
-            // aqui lo seteamos si es que son diferentes
-            // Esta linea se ejecuta 2 veces cuando el usuario hace clic en el menu. Si se pudiera verificar
-            // antes de ejecutar estariamos evitando repeticion (se ejecuta el cambio de indicador automatico y luego manual aca)
-            SetSelectedNavItemByName(e.SourcePageType.Name.ToLower());
-
-            // La navegacion como tal se ejecuta en navView_ItemInvoked asi que no necesitamos llamar
-            // a contentFrame.Navigate aqui
+            if (e.TargetLevel == "O")
+            {
+                // Is LoggedOut
+                HidePrivateMenuItems();
+            }
         }
 
         private void navView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
