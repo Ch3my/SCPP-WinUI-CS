@@ -29,13 +29,21 @@ using System.Timers;
 using Windows.Media.Protection.PlayReady;
 using System.Threading.Tasks;
 
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore.SkiaSharpView.Painting.Effects;
+using SkiaSharp;
+using LiveChartsCore.Kernel.Sketches;
+using LiveChartsCore.Defaults;
+using System.Linq;
+
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace SCPP_WinUI_CS
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// Pagina donde se pueden agregar Documentos, editar, consultar y ver algunos graficos
     /// </summary>
     public sealed partial class Dashboard : Page
     {
@@ -75,6 +83,23 @@ namespace SCPP_WinUI_CS
         ObservableCollection<TipoDoc> tipoDocs = new ObservableCollection<TipoDoc>();
 
         public ObservableCollection<GridRow> gridRows { get; set; } = new();
+        public IEnumerable<ICartesianAxis> HistoricYAxis = new List<Axis>
+            {
+                new Axis
+                {
+                    // Now the Y axis we will display labels as currency
+                    // LiveCharts provides some common formatters
+                    // in this case we are using the currency formatter.
+                    Labeler = Labelers.Currency 
+
+                    // you could also build your own currency formatter
+                    // for example:
+                    // Labeler = (value) => value.ToString("C")
+
+                    // But the one that LiveCharts provides creates shorter labels when
+                    // the amount is in millions or trillions
+                }
+            };
 
         public Dashboard()
         {
@@ -84,7 +109,7 @@ namespace SCPP_WinUI_CS
             this.GetCategorias();
             this.GetTipoDoc();
             this.GetDocs();
-
+            this.BuildHistoricChart();
         }
         public void SetFechaIniTerTipoDoc()
         {
@@ -98,7 +123,7 @@ namespace SCPP_WinUI_CS
         async public void GetCategorias()
         {
             HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/categorias?sessionHash=v03ex42bdrqrilrrybjgk"
+               $"/categorias?sessionHash={App.sessionHash}"
                );
             response.EnsureSuccessStatusCode();
             List<Categoria> categoriaList = JsonSerializer.Deserialize<List<Categoria>>(response.Content.ReadAsStringAsync().Result);
@@ -119,7 +144,7 @@ namespace SCPP_WinUI_CS
         async public void GetTipoDoc()
         {
             HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/tipo-docs?sessionHash=v03ex42bdrqrilrrybjgk"
+               $"/tipo-docs?sessionHash={App.sessionHash}"
                );
             response.EnsureSuccessStatusCode();
             List<TipoDoc> tipoDocList = JsonSerializer.Deserialize<List<TipoDoc>>(response.Content.ReadAsStringAsync().Result);
@@ -137,10 +162,10 @@ namespace SCPP_WinUI_CS
             string urlParams = helperfns.BuildUrlParamsFromClass(getDocsForm);
 
             HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/documentos?sessionHash=v03ex42bdrqrilrrybjgk&{urlParams}"
+               $"/documentos?sessionHash={App.sessionHash}&{urlParams}"
                );
             // response.EnsureSuccessStatusCode se podria cambiar a otro tipo de control de Error
-            if(!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 return;
             }
@@ -199,7 +224,7 @@ namespace SCPP_WinUI_CS
             }
 
             JsonObject test = new JsonObject();
-            test.Add("sessionHash", "v03ex42bdrqrilrrybjgk");
+            test.Add("sessionHash", App.sessionHash);
             test.Add("fk_categoria", newDoc.FkCategoria);
             test.Add("fk_tipoDoc", newDoc.FkTipoDoc);
             test.Add("proposito", newDoc.Proposito);
@@ -244,7 +269,7 @@ namespace SCPP_WinUI_CS
             GridRow selectedRow = (GridRow)e.AddedItems[0];
 
             Dictionary<string, object> urlArg = new Dictionary<string, object>();
-            urlArg["sessionHash"] = "v03ex42bdrqrilrrybjgk";
+            urlArg["sessionHash"] = App.sessionHash;
             urlArg["id[]"] = selectedRow.Id;
 
             HelperFunctions helperfns = new HelperFunctions();
@@ -278,7 +303,7 @@ namespace SCPP_WinUI_CS
             DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
 
             JsonObject apiArg = new JsonObject();
-            apiArg.Add("sessionHash", "v03ex42bdrqrilrrybjgk");
+            apiArg.Add("sessionHash", App.sessionHash);
             apiArg.Add("id", editDoc.Id);
             apiArg.Add("fk_categoria", editDoc.FkCategoria);
             apiArg.Add("fk_tipoDoc", editDoc.FkTipoDoc);
@@ -327,7 +352,7 @@ namespace SCPP_WinUI_CS
             DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
 
             JsonObject apiArg = new JsonObject();
-            apiArg.Add("sessionHash", "v03ex42bdrqrilrrybjgk");
+            apiArg.Add("sessionHash", App.sessionHash);
             apiArg.Add("id", editDoc.Id);
 
             var request = new HttpRequestMessage(HttpMethod.Delete, "/documentos");
@@ -361,6 +386,74 @@ namespace SCPP_WinUI_CS
 
             DocumentosNotification.Content = "Documento eliminado correctamente";
             DocumentosNotification.Show(3000);
+        }
+
+        async public void BuildHistoricChart()
+        {
+            HttpResponseMessage response = await App.httpClient.GetAsync(
+               $"/monthly-graph?sessionHash={App.sessionHash}&nMonths=9"
+               );
+            if (!response.IsSuccessStatusCode)
+            {
+                DocumentosNotification.Content = "Error al obtener datos para Grafico Historico";
+                DocumentosNotification.Show(3000);
+            }
+            JsonObject resObj = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
+            int[] gastosArray = JsonSerializer.Deserialize<int[]>(resObj["gastosDataset"].ToString());
+            int[] ingresosArray = JsonSerializer.Deserialize<int[]>(resObj["ingresosDataset"].ToString());
+            int[] ahorrosArray = JsonSerializer.Deserialize<int[]>(resObj["ahorrosDataset"].ToString());
+            string[] labelsArray = JsonSerializer.Deserialize<string[]>(resObj["labels"].ToString());
+
+            IEnumerable<ICartesianAxis>  LocalLabels = new List<ICartesianAxis> {
+            new Axis
+                {
+                    Labels = labelsArray
+                }
+            };
+
+            ISeries[] LocalSeries = new ISeries[]
+            {
+                new LineSeries<int>
+                {
+                    Values = gastosArray,
+                    Name = "Gastos",
+                    TooltipLabelFormatter =
+                        (chartPoint) => $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}",
+                    Stroke = new SolidColorPaint(SKColor.FromHsl(345f,97.8f, 35.3f)) {StrokeThickness = 3 },
+                    GeometryStroke = null,
+                    GeometryFill = new SolidColorPaint(SKColor.FromHsl(345f,97.8f, 35.3f)),
+                    Fill =  new SolidColorPaint(SKColor.FromHsl(345f,97.8f, 35.3f).WithAlpha(50))
+                },
+                new LineSeries<int>
+                {
+                    Values = ingresosArray,
+                    Name = "Ingresos",
+                    TooltipLabelFormatter =
+                        (chartPoint) => $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}",
+                    Stroke =new SolidColorPaint(SKColor.FromHsl(211f,76f, 73f)) {StrokeThickness = 3 },
+                    GeometryStroke =null,
+                    GeometryFill = new SolidColorPaint(SKColor.FromHsl(211f,76f, 73f)),
+                    Fill =  new SolidColorPaint(SKColor.FromHsl(211f,76f, 73f).WithAlpha(50))
+
+                },
+                new LineSeries<int>
+                {
+                    Values = ahorrosArray,
+                    Name = "Ahorros",
+                    TooltipLabelFormatter =
+                        (chartPoint) => $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}",
+                    Stroke = new SolidColorPaint(SKColor.FromHsl(53f,63.3f, 52f)) {StrokeThickness = 3 },
+                    GeometryStroke =null,
+                    GeometryFill = new SolidColorPaint(SKColor.FromHsl(53f,63.3f, 52f)),
+                    Fill =  new SolidColorPaint(SKColor.FromHsl(53f,63.3f, 52f).WithAlpha(50))
+
+                }
+            };
+
+            // Si estos se ponian en el XAML a veces se caia al salir y volver a la pagina
+            // De todas maneras sino necesitamos Bind quiza sea mejor no usar
+            HistoricChart.Series = LocalSeries;
+            HistoricChart.XAxes = LocalLabels;
         }
     }
 
