@@ -41,13 +41,19 @@
                         <SymbolIcon Symbol="World" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem x:Name="NavItem_1" Content="PAGE_1" />
                 <NavigationViewItem x:Name="login" Content="Login">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Contact" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
+
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem
+                    x:Name="config"
+                    Content="Config"
+                    Icon="Setting" />
+            </NavigationView.FooterMenuItems>
 
             <Frame x:Name="contentFrame" Navigated="contentFrame_Navigated" />
         </NavigationView>

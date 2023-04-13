@@ -132,13 +132,13 @@ namespace SCPP_WinUI_CS
             {
                 pageType = typeof(Dashboard);
             }
-            if (selectedNavItem.Name == "NavItem_1")
-            {
-                pageType = typeof(BlankPage1);
-            }
             if (selectedNavItem.Name == "login")
             {
                 pageType = typeof(LoginPage);
+            }
+            if (selectedNavItem.Name == "config")
+            {
+                pageType = typeof(Config);
             }
 
             _ = contentFrame.Navigate(pageType);

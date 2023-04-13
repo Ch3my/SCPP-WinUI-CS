@@ -37,6 +37,10 @@ using SkiaSharp;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.Defaults;
 using System.Linq;
+using CommunityToolkit.WinUI.Helpers;
+using LiveChartsCore.Kernel;
+using LiveChartsCore.SkiaSharpView.VisualElements;
+using static System.Net.Mime.MediaTypeNames;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -47,60 +51,6 @@ namespace SCPP_WinUI_CS
     /// </summary>
     public sealed partial class Dashboard : Page
     {
-        // Para formatear dentro del NumberBox Repo de Ejemplo https://github.com/sonnemaf/NumberBoxTest/blob/master/NumberBoxTest/MainPage.xaml.cs
-        private DecimalFormatter IntFormatter { get; } =
-            new DecimalFormatter
-            {
-                IsGrouped = true,
-                FractionDigits = 0,
-                IntegerDigits = 1
-            };
-
-        public Documento newDoc = new();
-        public Documento editDoc = new();
-        public ScalarTransition MyOpacityTransition = new ScalarTransition()
-        {
-            Duration = TimeSpan.FromSeconds(0.5)
-        };
-
-        public GetDocsForm getDocsForm = new GetDocsForm
-        {
-            fk_tipoDoc = 1,
-            searchPhrase = "",
-            fk_categoria = 0,
-            fechaInicio = new DateOnly(),
-            fechaTermino = new DateOnly()
-        };
-        public struct GridRow
-        {
-            public string Proposito { get; set; }
-            public string Monto { get; set; }
-            public string Fecha { get; set; }
-            public int Id { get; set; }
-
-        }
-        ObservableCollection<Categoria> categorias = new ObservableCollection<Categoria>();
-        ObservableCollection<TipoDoc> tipoDocs = new ObservableCollection<TipoDoc>();
-
-        public ObservableCollection<GridRow> gridRows { get; set; } = new();
-        public IEnumerable<ICartesianAxis> HistoricYAxis = new List<Axis>
-            {
-                new Axis
-                {
-                    // Now the Y axis we will display labels as currency
-                    // LiveCharts provides some common formatters
-                    // in this case we are using the currency formatter.
-                    Labeler = Labelers.Currency 
-
-                    // you could also build your own currency formatter
-                    // for example:
-                    // Labeler = (value) => value.ToString("C")
-
-                    // But the one that LiveCharts provides creates shorter labels when
-                    // the amount is in millions or trillions
-                }
-            };
-
         public Dashboard()
         {
             this.InitializeComponent();
@@ -110,11 +60,18 @@ namespace SCPP_WinUI_CS
             this.GetTipoDoc();
             this.GetDocs();
             this.BuildHistoricChart();
+            this.BuildCatGraph();
         }
         public void SetFechaIniTerTipoDoc()
         {
             DateOnly today = DateOnly.FromDateTime(DateTime.Today);
             getDocsForm.fechaInicio = new DateOnly(today.Year, today.Month, 1);
+
+            // Si es Ahorro o Ingreso Modificamos fechaInicio a ser 1 dia del Año
+            if (getDocsForm.fk_tipoDoc == 2 || getDocsForm.fk_tipoDoc == 3)
+            {
+                getDocsForm.fechaInicio = DateOnly.FromDateTime(new DateTime(DateTime.Now.Year, 1, 1));
+            }
 
             DateTime startOfNextMonth = new DateTime(today.Year, today.Month, 1).AddMonths(1);
             DateTime lastDayOfMonth = startOfNextMonth.AddDays(-1);
@@ -206,6 +163,9 @@ namespace SCPP_WinUI_CS
         private void AddDoc_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             AgregarDocumentoBlade.IsOpen = true;
+            // resetea Errores si hubieran
+            AddDocInfoBar.IsOpen = false;
+            AddDocInfoBar.Opacity = 0;
             // Por defecto ya va la fecha de Hoy
             newDocFechaInput.Date = DateTimeOffset.Now;
         }
@@ -223,35 +183,57 @@ namespace SCPP_WinUI_CS
                 return;
             }
 
-            JsonObject test = new JsonObject();
-            test.Add("sessionHash", App.sessionHash);
-            test.Add("fk_categoria", newDoc.FkCategoria);
-            test.Add("fk_tipoDoc", newDoc.FkTipoDoc);
-            test.Add("proposito", newDoc.Proposito);
-            test.Add("monto", newDoc.Monto);
-            test.Add("fecha", newDoc.Fecha.ToString("yyyy-MM-dd"));
+            JsonObject apiArg = new JsonObject();
+            apiArg.Add("sessionHash", App.sessionHash);
+            apiArg.Add("fk_tipoDoc", newDoc.FkTipoDoc);
+            apiArg.Add("proposito", newDoc.Proposito);
+            apiArg.Add("monto", newDoc.Monto);
+            apiArg.Add("fecha", newDoc.Fecha.ToString("yyyy-MM-dd"));
+            if (newDoc.FkTipoDoc == 1)
+            {
+                apiArg.Add("fk_categoria", newDoc.FkCategoria);
+            } else
+            {
+                apiArg.Add("fk_categoria", null);
+            }
+            if(newDoc.FkTipoDoc == 0)
+            {
+                AddDocInfoBar.Title = "Error";
+                AddDocInfoBar.Message = "Debe seleccionar Tipo de Documento";
+                AddDocInfoBar.IsOpen = true;
+                AddDocInfoBar.Opacity = 1;
+                return;
+            }
+            if (newDoc.FkTipoDoc == 1 && newDoc.FkCategoria == 0)
+            {
+                AddDocInfoBar.Title = "Error";
+                AddDocInfoBar.Message = "Debe seleccionar una categoria";
+                AddDocInfoBar.IsOpen = true;
+                AddDocInfoBar.Opacity = 1;
+                return;
+            }
 
             HttpResponseMessage response = await App.httpClient.PostAsJsonAsync(
-               $"/documentos", test, new JsonSerializerOptions
-               {
-                   DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-               });
+           $"/documentos", apiArg);
 
             if (!response.IsSuccessStatusCode)
             {
                 DocumentosNotification.Content = "Durante la comunicacion con la API";
+                DocumentosNotification.Background = AppColors.RedBrush;
                 DocumentosNotification.Show(3000);
+                return;
             }
             this.GetDocs();
             newDoc.Reset();
 
             DocumentosNotification.Content = "Documento Grabado correctamente";
+            DocumentosNotification.Background = AppColors.GreenBrush;
             DocumentosNotification.Show(3000);
         }
 
-        private void getDocsFormFecIniInput_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
+        private void FilterCalendar_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
         {
-            //getDocsForm.fechaInicio = 
+            this.GetDocs();
         }
 
         private void RefreshDocs_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -280,11 +262,17 @@ namespace SCPP_WinUI_CS
                );
             if (!response.IsSuccessStatusCode)
             {
-                // Err Show Error MSG
+                DocumentosNotification.Content = "Durante la comunicacion con la API";
+                DocumentosNotification.Background = AppColors.RedBrush;
+                DocumentosNotification.Show(3000);
                 return;
             }
             List<Documento> docsList = JsonSerializer.Deserialize<List<Documento>>(response.Content.ReadAsStringAsync().Result);
             editDoc.Reset();
+            // Resetea errores si hubieran
+            EditDocInfoBar.Opacity = 0;
+            EditDocInfoBar.IsOpen = false;
+
             editDoc.Monto = docsList[0].Monto;
             editDoc.Id = docsList[0].Id;
             editDoc.Proposito = docsList[0].Proposito;
@@ -305,17 +293,38 @@ namespace SCPP_WinUI_CS
             JsonObject apiArg = new JsonObject();
             apiArg.Add("sessionHash", App.sessionHash);
             apiArg.Add("id", editDoc.Id);
-            apiArg.Add("fk_categoria", editDoc.FkCategoria);
             apiArg.Add("fk_tipoDoc", editDoc.FkTipoDoc);
             apiArg.Add("proposito", editDoc.Proposito);
             apiArg.Add("monto", editDoc.Monto);
             apiArg.Add("fecha", editDoc.Fecha.ToString("yyyy-MM-dd"));
+            if (editDoc.FkTipoDoc == 1)
+            {
+                apiArg.Add("fk_categoria", editDoc.FkCategoria);
+            } else
+            {
+                apiArg.Add("fk_categoria", null);
+            }
+
+            if (editDoc.FkTipoDoc == 0)
+            {
+                EditDocInfoBar.Title = "Error";
+                EditDocInfoBar.Message = "Debe seleccionar Tipo de Documento";
+                EditDocInfoBar.Opacity = 1;
+                EditDocInfoBar.IsOpen = true;
+                return;
+            }
+
+            if (editDoc.FkTipoDoc == 1 && editDoc.FkCategoria == 0)
+            {
+                EditDocInfoBar.Title = "Error";
+                EditDocInfoBar.Message = "Debe seleccionar una categoria";
+                EditDocInfoBar.Opacity = 1;
+                EditDocInfoBar.IsOpen = true;
+                return;
+            }
 
             HttpResponseMessage response = await App.httpClient.PutAsJsonAsync(
-               $"/documentos", apiArg, new JsonSerializerOptions
-               {
-                   DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-               });
+               $"/documentos", apiArg);
             if (!response.IsSuccessStatusCode)
             {
                 EditDocInfoBar.Title = "Error";
@@ -385,6 +394,7 @@ namespace SCPP_WinUI_CS
             editDoc.Reset();
 
             DocumentosNotification.Content = "Documento eliminado correctamente";
+            DocumentosNotification.Background = AppColors.GreenBrush;
             DocumentosNotification.Show(3000);
         }
 
@@ -396,7 +406,9 @@ namespace SCPP_WinUI_CS
             if (!response.IsSuccessStatusCode)
             {
                 DocumentosNotification.Content = "Error al obtener datos para Grafico Historico";
+                DocumentosNotification.Background = AppColors.RedBrush;
                 DocumentosNotification.Show(3000);
+                return;
             }
             JsonObject resObj = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
             int[] gastosArray = JsonSerializer.Deserialize<int[]>(resObj["gastosDataset"].ToString());
@@ -404,10 +416,16 @@ namespace SCPP_WinUI_CS
             int[] ahorrosArray = JsonSerializer.Deserialize<int[]>(resObj["ahorrosDataset"].ToString());
             string[] labelsArray = JsonSerializer.Deserialize<string[]>(resObj["labels"].ToString());
 
-            IEnumerable<ICartesianAxis>  LocalLabels = new List<ICartesianAxis> {
+            // No logre poder leer bien los colores del sistema para aplicar
+            IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
             new Axis
                 {
-                    Labels = labelsArray
+                    Labels = labelsArray,
+                    Padding = new LiveChartsCore.Drawing.Padding {Top = 0},
+                    LabelsPaint = new SolidColorPaint
+                    {
+                        Color =  SKColors.Gray
+                    },
                 }
             };
 
@@ -455,8 +473,99 @@ namespace SCPP_WinUI_CS
             HistoricChart.Series = LocalSeries;
             HistoricChart.XAxes = LocalLabels;
         }
+
+        private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Como ambos combobox usan este mismo onchaged verificamos el valor del tipoDOc
+            // para saber si tenemos que modifcar las fechas antes de llamar a GetDOcs
+            if (getDocsForm.fk_tipoDoc == 2 || getDocsForm.fk_tipoDoc == 3)
+            {
+                SetFechaIniTerTipoDoc();
+            }
+            this.GetDocs();
+        }
+
+        async public void BuildCatGraph()
+        {
+            HttpResponseMessage response = await App.httpClient.GetAsync(
+            $"/expenses-by-category?sessionHash={App.sessionHash}"
+            );
+            if (!response.IsSuccessStatusCode)
+            {
+                DocumentosNotification.Content = "Error al obtener datos para Grafico Categoria";
+                DocumentosNotification.Background = AppColors.RedBrush;
+                DocumentosNotification.Show(3000);
+                return;
+            }
+            JsonObject resObj = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
+            // aseguramos de tener integers. Desde API podrian venir doubles y se no se ejecuta el grafico porque se cae
+            double[] tmpData = JsonSerializer.Deserialize<double[]>(resObj["amounts"].ToString());
+            int[] dataArr = new int[tmpData.Length];
+            for (int i = 0; i < tmpData.Length; i++)
+            {
+                dataArr[i] = (int)tmpData[i];
+            }
+
+            //int[] dataArr = JsonSerializer.Deserialize<int[]>(resObj["amounts"].ToString());
+            string[] labelsArray = JsonSerializer.Deserialize<string[]>(resObj["labels"].ToString());
+
+            IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
+            new Axis
+                {
+                    Labels = labelsArray,
+                    Padding = new LiveChartsCore.Drawing.Padding {Top = -50, Left=-20},
+                    LabelsRotation = -20,
+                    TextSize = 14,
+                    LabelsAlignment = LiveChartsCore.Drawing.Align.End,
+                    LabelsPaint = new SolidColorPaint
+                    {
+                        Color =  SKColors.Gray,
+                    },
+                }
+            };
+
+            ISeries[] LocalSeries = new ISeries[]
+            {
+                new ColumnSeries<int>
+                {
+                    Values = dataArr,
+                    Name = "Categoria",
+                    TooltipLabelFormatter = (chartPoint) => {
+                        // Buscamos el Index a Mano y nos traemos su Label. Aparentemente no se puede hacer
+                        // Automatico
+                        int DataIndex = Array.FindIndex(dataArr, x => x == ((int)chartPoint.PrimaryValue));
+                        if(DataIndex != -1)
+                        {
+                            return $"{labelsArray[DataIndex]}: {chartPoint.PrimaryValue:N0}";
+                        }
+                            return  $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}";
+                        },
+                    Stroke = null,
+                    Fill =  new SolidColorPaint(SKColor.FromHsl(91f,40f, 66f)),
+                },
+            };
+
+            CategoryChart.Series = LocalSeries;
+            CategoryChart.XAxes = LocalLabels;
+        }
+
+        private void EditDocTipoDoc_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (editDoc.FkTipoDoc == 1)
+            {
+                EditDocCatGrid.Visibility = Visibility.Visible;
+                return;
+            }
+            EditDocCatGrid.Visibility = Visibility.Collapsed;
+        }
+        private void NewDocTipoDoc_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (newDoc.FkTipoDoc == 1)
+            {
+                NewDocCatGrid.Visibility = Visibility.Visible;
+                return;
+            }
+            NewDocCatGrid.Visibility = Visibility.Collapsed;
+        }
     }
-
-
-
 }

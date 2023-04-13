@@ -11,11 +11,11 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
 	<WindowsPackageType>None</WindowsPackageType>
+	<ApplicationIcon>Assets\Logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="BlankPage1.xaml" />
-    <None Remove="Config.xaml" />
-    <None Remove="Dashboard.xaml" />
+    <None Remove="ConfigPage.xaml" />
+    <None Remove="DashboardPage.xaml" />
     <None Remove="LoginPage.xaml" />
   </ItemGroup>
 
@@ -52,17 +52,12 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Config.xaml">
+    <Page Update="ConfigPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Dashboard.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="BlankPage1.xaml">
+    <Page Update="DashboardPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
