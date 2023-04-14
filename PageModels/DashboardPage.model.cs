@@ -99,5 +99,7 @@ namespace SCPP_WinUI_CS
             public string Fecha { get; set; }
             public int Id { get; set; }
         }
+
+        public ObservableString SumaTotalDocs = new();
     }
 }

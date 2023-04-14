@@ -16,7 +16,7 @@ namespace SCPP_WinUI_CS
         private int _Id;
         private string _Proposito;
         private int _Monto;
-        private int _FkCategoria;
+        private int? _FkCategoria;
         private int _FkTipoDoc;
         private DateOnly _Fecha;
 
@@ -57,7 +57,7 @@ namespace SCPP_WinUI_CS
             }
         }
         [JsonPropertyName("fk_categoria")]
-        public int FkCategoria
+        public int? FkCategoria
         {
             get
             {

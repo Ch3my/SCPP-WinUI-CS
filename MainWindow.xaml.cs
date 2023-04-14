@@ -31,8 +31,6 @@ namespace SCPP_WinUI_CS
         public MainWindow()
         {
             this.InitializeComponent();
-            // Siempre comenzamos en el DashBoard
-            //navView.SelectedItem = navView.MenuItems[0];
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(AppTitleBar);
             InitialChecks();
@@ -61,8 +59,17 @@ namespace SCPP_WinUI_CS
                 if (item.Name != "login")
                 {
                     item.Visibility = Visibility.Collapsed;
+                } else
+                {
+                    item.Visibility = Visibility.Visible;
                 }
             }
+
+            foreach (NavigationViewItemBase item in navView.FooterMenuItems)
+            {
+                item.Visibility = Visibility.Collapsed;
+            }
+
         }
         public void ShowPrivateMenuItems()
         {
@@ -78,6 +85,10 @@ namespace SCPP_WinUI_CS
                 {
                     item.Visibility = Visibility.Visible;
                 }
+            }
+            foreach (NavigationViewItemBase item in navView.FooterMenuItems)
+            {
+                item.Visibility = Visibility.Visible;
             }
         }
         private void SetSelectedNavItemByName(string name)
@@ -105,6 +116,15 @@ namespace SCPP_WinUI_CS
                 {
                     // Unloaded Event no causa MemoryLeak, usarlo para desusbribirse es buena practica dice GPT
                     loginPage.UpdateMenuLevel -= UpdateMenuLevel;
+                };
+            }
+            if (currentPage is ConfigPage configPage)
+            {
+                configPage.UpdateMenuLevel += UpdateMenuLevel;
+                configPage.Unloaded += (s, args) =>
+                {
+                    // Unloaded Event no causa MemoryLeak, usarlo para desusbribirse es buena practica dice GPT
+                    configPage.UpdateMenuLevel -= UpdateMenuLevel;
                 };
             }
         }
@@ -138,7 +158,7 @@ namespace SCPP_WinUI_CS
             }
             if (selectedNavItem.Name == "config")
             {
-                pageType = typeof(Config);
+                pageType = typeof(ConfigPage);
             }
 
             _ = contentFrame.Navigate(pageType);

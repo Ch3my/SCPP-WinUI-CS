@@ -10,7 +10,7 @@ namespace SCPP_WinUI_CS
     public class Categoria
     {
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public int? Id { get; set; }
         [JsonPropertyName("descripcion")]
         public string Descripcion { get; set; }
     }

@@ -141,6 +141,8 @@ namespace SCPP_WinUI_CS
                 thisRow.Id = d.Id;
                 gridRows.Add(thisRow);
             }
+
+            SumaTotalDocs.Value = docsList.Sum(d => d.Monto).ToString("#,##0.##");
         }
 
         private void DataGrid_RowEditEnded(object sender, CommunityToolkit.WinUI.UI.Controls.DataGridRowEditEndedEventArgs e)
@@ -192,11 +194,12 @@ namespace SCPP_WinUI_CS
             if (newDoc.FkTipoDoc == 1)
             {
                 apiArg.Add("fk_categoria", newDoc.FkCategoria);
-            } else
+            }
+            else
             {
                 apiArg.Add("fk_categoria", null);
             }
-            if(newDoc.FkTipoDoc == 0)
+            if (newDoc.FkTipoDoc == 0)
             {
                 AddDocInfoBar.Title = "Error";
                 AddDocInfoBar.Message = "Debe seleccionar Tipo de Documento";
@@ -224,10 +227,13 @@ namespace SCPP_WinUI_CS
                 return;
             }
             this.GetDocs();
+            this.BuildCatGraph();
+            this.BuildHistoricChart();
             newDoc.Reset();
 
             DocumentosNotification.Content = "Documento Grabado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
+            DocumentosNotification.StartBringIntoView();
             DocumentosNotification.Show(3000);
         }
 
@@ -239,6 +245,8 @@ namespace SCPP_WinUI_CS
         private void RefreshDocs_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             this.GetDocs();
+            this.BuildCatGraph();
+            this.BuildHistoricChart();
         }
 
         async private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -300,7 +308,8 @@ namespace SCPP_WinUI_CS
             if (editDoc.FkTipoDoc == 1)
             {
                 apiArg.Add("fk_categoria", editDoc.FkCategoria);
-            } else
+            }
+            else
             {
                 apiArg.Add("fk_categoria", null);
             }
@@ -346,11 +355,14 @@ namespace SCPP_WinUI_CS
                 return;
             }
             this.GetDocs();
+            this.BuildCatGraph();
+            this.BuildHistoricChart();
             EditDocumentoBlade.IsOpen = false;
             editDoc.Reset();
 
             DocumentosNotification.Content = "Documento actualizado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
+            DocumentosNotification.StartBringIntoView();
             DocumentosNotification.Show(3000);
         }
 
@@ -390,18 +402,21 @@ namespace SCPP_WinUI_CS
                 return;
             }
             this.GetDocs();
+            this.BuildCatGraph();
+            this.BuildHistoricChart();
             EditDocumentoBlade.IsOpen = false;
             editDoc.Reset();
 
             DocumentosNotification.Content = "Documento eliminado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
+            DocumentosNotification.StartBringIntoView();
             DocumentosNotification.Show(3000);
         }
 
         async public void BuildHistoricChart()
         {
             HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/monthly-graph?sessionHash={App.sessionHash}&nMonths=9"
+               $"/monthly-graph?sessionHash={App.sessionHash}&nMonths=12"
                );
             if (!response.IsSuccessStatusCode)
             {
@@ -414,13 +429,15 @@ namespace SCPP_WinUI_CS
             int[] gastosArray = JsonSerializer.Deserialize<int[]>(resObj["gastosDataset"].ToString());
             int[] ingresosArray = JsonSerializer.Deserialize<int[]>(resObj["ingresosDataset"].ToString());
             int[] ahorrosArray = JsonSerializer.Deserialize<int[]>(resObj["ahorrosDataset"].ToString());
-            string[] labelsArray = JsonSerializer.Deserialize<string[]>(resObj["labels"].ToString());
+            // Cortamos solo los ultimos 5 Char que son suficientes y ahorramos espacio
+            List<string> labelsList = JsonSerializer.Deserialize<List<string>>(resObj["labels"].ToString());
+            List<string> cutList = labelsList.Select(s => s.Substring(Math.Max(0, s.Length - 5))).ToList();
 
             // No logre poder leer bien los colores del sistema para aplicar
             IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
             new Axis
                 {
-                    Labels = labelsArray,
+                    Labels = cutList,
                     Padding = new LiveChartsCore.Drawing.Padding {Top = 0},
                     LabelsPaint = new SolidColorPaint
                     {
@@ -476,12 +493,7 @@ namespace SCPP_WinUI_CS
 
         private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Como ambos combobox usan este mismo onchaged verificamos el valor del tipoDOc
-            // para saber si tenemos que modifcar las fechas antes de llamar a GetDOcs
-            if (getDocsForm.fk_tipoDoc == 2 || getDocsForm.fk_tipoDoc == 3)
-            {
-                SetFechaIniTerTipoDoc();
-            }
+            SetFechaIniTerTipoDoc();
             this.GetDocs();
         }
 
@@ -506,17 +518,18 @@ namespace SCPP_WinUI_CS
                 dataArr[i] = (int)tmpData[i];
             }
 
-            //int[] dataArr = JsonSerializer.Deserialize<int[]>(resObj["amounts"].ToString());
-            string[] labelsArray = JsonSerializer.Deserialize<string[]>(resObj["labels"].ToString());
+            // Cortamos Strings a 5 Char para que se vean las etiquetas
+            List<string> labelsList = JsonSerializer.Deserialize<List<string>>(resObj["labels"].ToString());
+            List<string> cutList = labelsList.Select(s => s.Substring(0, Math.Min(s.Length, 5))).ToList();
 
             IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
             new Axis
                 {
-                    Labels = labelsArray,
-                    Padding = new LiveChartsCore.Drawing.Padding {Top = -50, Left=-20},
-                    LabelsRotation = -20,
+                    Labels = cutList,
+                    Padding = new LiveChartsCore.Drawing.Padding {Top = -120},
+                    //LabelsRotation = -20,
                     TextSize = 14,
-                    LabelsAlignment = LiveChartsCore.Drawing.Align.End,
+                    //LabelsAlignment = LiveChartsCore.Drawing.Align.End,
                     LabelsPaint = new SolidColorPaint
                     {
                         Color =  SKColors.Gray,
@@ -536,7 +549,7 @@ namespace SCPP_WinUI_CS
                         int DataIndex = Array.FindIndex(dataArr, x => x == ((int)chartPoint.PrimaryValue));
                         if(DataIndex != -1)
                         {
-                            return $"{labelsArray[DataIndex]}: {chartPoint.PrimaryValue:N0}";
+                            return $"{labelsList[DataIndex]}: {chartPoint.PrimaryValue:N0}";
                         }
                             return  $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}";
                         },
@@ -566,6 +579,11 @@ namespace SCPP_WinUI_CS
                 return;
             }
             NewDocCatGrid.Visibility = Visibility.Collapsed;
+        }
+
+        private void DataGridDocsBuscar_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            this.GetDocs();
         }
     }
 }

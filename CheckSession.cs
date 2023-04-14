@@ -29,6 +29,7 @@ namespace SCPP_WinUI_CS
             }
             catch (Exception ex)
             {
+                FileLogger.AppendToFile(ex.Message);
                 return false;
             }
 

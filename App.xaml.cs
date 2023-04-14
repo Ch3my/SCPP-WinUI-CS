@@ -45,13 +45,13 @@ namespace SCPP_WinUI_CS
         public App()
         {
             // Chequeamos si existe archivo
-            if (Config.CheckConfigFile())
+            if (ConfigPage.CheckConfigFile())
             {
                 LoadConfig();
             }
-            if (!Config.CheckConfigFile())
+            if (!ConfigPage.CheckConfigFile())
             {
-                Config.CreateConfigFile();
+                ConfigPage.CreateConfigFile();
             }
 
             this.InitializeComponent();
@@ -69,7 +69,7 @@ namespace SCPP_WinUI_CS
 
         static public void LoadConfig()
         {
-            JsonObject currentConfig = Config.GetConfig();
+            JsonObject currentConfig = ConfigPage.GetConfig();
 
             if (!Uri.IsWellFormedUriString(currentConfig["apiPrefix"].ToString(), UriKind.Absolute))
             {

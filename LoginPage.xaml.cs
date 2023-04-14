@@ -58,6 +58,7 @@ namespace SCPP_WinUI_CS
                 Notification.Content = "Error de comunicacion con la API";
                 Notification.Background = AppColors.RedBrush;
                 Notification.Show(3000);
+                FileLogger.AppendToFile(ex.Message);
                 return;
             }
 
@@ -80,7 +81,7 @@ namespace SCPP_WinUI_CS
             if (resObj.TryGetPropertyValue("sessionHash", out JsonNode sessionHashElement))
             {
                 // Obtenemos ApiPrefix para no eliminarlo al sobreescribir la configuracion
-                JsonObject currentConfig = Config.GetConfig();
+                JsonObject currentConfig = ConfigPage.GetConfig();
                 string apiPrefix = currentConfig["apiPrefix"].ToString();
 
                 string sessionHash = sessionHashElement.ToString();
@@ -89,7 +90,7 @@ namespace SCPP_WinUI_CS
                 updateConfig.Add("apiPrefix", apiPrefix);
 
                 // Guarda config y navegamos donde es necesario, Actualizamos Opciones del Menu
-                Config.UpdateConfigFile(updateConfig);
+                ConfigPage.UpdateConfigFile(updateConfig);
 
                 Frame.Navigate(typeof(Dashboard));
                 // I de In
@@ -99,7 +100,7 @@ namespace SCPP_WinUI_CS
 
         private void ShowConfig(object sender, RoutedEventArgs e)
         {
-            JsonObject currentConfig = Config.GetConfig();
+            JsonObject currentConfig = ConfigPage.GetConfig();
             ConfigApiPrefixTextBox.Text = currentConfig["apiPrefix"].ToString();
             ConfigSessionHashTextBox.Text = currentConfig["sessionHash"].ToString();
             ConfigBlade.IsOpen = true;
@@ -110,7 +111,7 @@ namespace SCPP_WinUI_CS
             updateConfig.Add("sessionHash", ConfigSessionHashTextBox.Text);
             updateConfig.Add("apiPrefix", ConfigApiPrefixTextBox.Text);
 
-            if (Config.UpdateConfigFile(updateConfig))
+            if (ConfigPage.UpdateConfigFile(updateConfig))
             {
                 Notification.Content = "Configuracion actualizada correctamente";
                 Notification.Show(3000);
