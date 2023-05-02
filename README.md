@@ -19,3 +19,5 @@ Keep in mind that while .NET 6 is a cross-platform framework, your WinUI applica
 Install mono
 
 sudo apt install mono
+
+Or install mono-complete ()
