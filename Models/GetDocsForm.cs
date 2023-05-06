@@ -72,7 +72,10 @@ namespace SCPP_WinUI_CS.Models
             set
             {
                 _fechaInicio = value;
-                OnPropertyChanged();
+                //OnPropertyChanged();
+                // Las fechas se disparan 2 veces, una en el calendar y otra cuando el calendar
+                // actualiza la fecha al parecer. eliminamos este trigger asi se ejecuta 1 vez la funcion
+                // no 2 veces
             }
         }
         public DateOnly fechaTermino
@@ -81,7 +84,10 @@ namespace SCPP_WinUI_CS.Models
             set
             {
                 _fechaTermino = value;
-                OnPropertyChanged();
+                //OnPropertyChanged();
+                // Las fechas se disparan 2 veces, una en el calendar y otra cuando el calendar
+                // actualiza la fecha al parecer. eliminamos este trigger asi se ejecuta 1 vez la funcion
+                // no 2 veces
             }
         }
         // Create the OnPropertyChanged method to raise the event

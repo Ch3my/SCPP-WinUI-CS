@@ -79,6 +79,7 @@ namespace SCPP_WinUI_CS
         }
         async public void GetCategorias()
         {
+
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/categorias?sessionHash={App.sessionHash}"
                );
@@ -94,7 +95,7 @@ namespace SCPP_WinUI_CS
             categorias.Add(allCat);
             foreach (Categoria c in categoriaList)
             {
-                categorias.Add(c);
+               categorias.Add(c);
             }
             getDocsFormCategInput.SelectedIndex = 0;
         }
@@ -239,6 +240,16 @@ namespace SCPP_WinUI_CS
 
         private void FilterCalendar_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
         {
+            if(!getDocsFormFecIniInput.IsEnabled)
+            {
+                getDocsFormFecIniInput.IsEnabled = true;
+                return;
+            }
+            if(!getDocsFormFecTerInput.IsEnabled)
+            {
+                getDocsFormFecTerInput.IsEnabled = true;
+                return;
+            }
             this.GetDocs();
         }
 
@@ -491,9 +502,14 @@ namespace SCPP_WinUI_CS
             HistoricChart.XAxes = LocalLabels;
         }
 
-        private void FilterCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void TipoDocCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             SetFechaIniTerTipoDoc();
+            if(!getDocsFormTipoDocInput.IsEnabled)
+            {
+                getDocsFormTipoDocInput.IsEnabled = true;
+                return;
+            }
             this.GetDocs();
         }
 
@@ -526,7 +542,7 @@ namespace SCPP_WinUI_CS
             new Axis
                 {
                     Labels = cutList,
-                    Padding = new LiveChartsCore.Drawing.Padding {Top = -120},
+                    Padding = new LiveChartsCore.Drawing.Padding {Top = -50},
                     //LabelsRotation = -20,
                     TextSize = 14,
                     //LabelsAlignment = LiveChartsCore.Drawing.Align.End,
@@ -585,5 +601,20 @@ namespace SCPP_WinUI_CS
         {
             this.GetDocs();
         }
+
+        private void CategCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            
+                if(!getDocsFormCategInput.IsEnabled)
+            {
+                // Al cargar datos desde API ejecuta trigger, cuando trigger la primera vez habilitamos
+                // y volvemos, no necesitamos buscar documentos porque solo se cargo la lista de
+                // categorias
+                getDocsFormCategInput.IsEnabled = true;
+                return;
+            }
+            this.GetDocs();
+        }
+
     }
 }

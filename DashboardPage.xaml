@@ -129,11 +129,12 @@
                                             Width="Auto"
                                             HorizontalAlignment="Stretch"
                                             DisplayMemberPath="Descripcion"
+                                            IsEnabled="False"
                                             ItemsSource="{x:Bind tipoDocs}"
                                             MaxDropDownHeight="250"
                                             SelectedValue="{x:Bind getDocsForm.fk_tipoDoc, Mode=TwoWay}"
                                             SelectedValuePath="Id"
-                                            SelectionChanged="FilterCombo_SelectionChanged" />
+                                            SelectionChanged="TipoDocCombo_SelectionChanged" />
                                     </Grid>
                                 </Grid>
                                 <Grid Grid.Column="1">
@@ -153,11 +154,12 @@
                                             Width="Auto"
                                             HorizontalAlignment="Stretch"
                                             DisplayMemberPath="Descripcion"
+                                            IsEnabled="False"
                                             ItemsSource="{x:Bind categorias}"
                                             MaxDropDownHeight="250"
                                             SelectedValue="{x:Bind getDocsForm.fk_categoria, Mode=TwoWay}"
                                             SelectedValuePath="Id"
-                                            SelectionChanged="FilterCombo_SelectionChanged" />
+                                            SelectionChanged="CategCombo_SelectionChanged" />
                                     </Grid>
                                 </Grid>
                             </Grid>
@@ -188,7 +190,8 @@
                                             Grid.Column="1"
                                             HorizontalAlignment="Stretch"
                                             Date="{x:Bind getDocsForm.fechaInicio, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
-                                            DateChanged="FilterCalendar_DateChanged" />
+                                            DateChanged="FilterCalendar_DateChanged"
+                                            IsEnabled="False" />
                                     </Grid>
                                 </Grid>
                                 <Grid Grid.Column="1">
@@ -203,10 +206,12 @@
                                             VerticalAlignment="Center"
                                             Text="Fecha Fin" />
                                         <CalendarDatePicker
+                                            x:Name="getDocsFormFecTerInput"
                                             Grid.Column="1"
                                             HorizontalAlignment="Stretch"
                                             Date="{x:Bind getDocsForm.fechaTermino, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
-                                            DateChanged="FilterCalendar_DateChanged" />
+                                            DateChanged="FilterCalendar_DateChanged"
+                                            IsEnabled="False" />
                                     </Grid>
                                 </Grid>
                             </Grid>
