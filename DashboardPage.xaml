@@ -235,7 +235,7 @@
                                     Tag="fecha" />
 
                                 <toolkit:DataGridTextColumn
-                                    Width="215"
+                                    Width="200"
                                     Binding="{Binding Path=Proposito}"
                                     CanUserSort="False"
                                     Header="Proposito"
