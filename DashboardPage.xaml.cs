@@ -449,7 +449,8 @@ namespace SCPP_WinUI_CS
             new Axis
                 {
                     Labels = cutList,
-                    Padding = new LiveChartsCore.Drawing.Padding {Top = (float)(HistoricChart.ActualHeight - 50)},
+                    //Padding = new LiveChartsCore.Drawing.Padding {Top = (float)(HistoricChart.ActualHeight - 50)},
+                    Padding = new LiveChartsCore.Drawing.Padding {Top = -50},
                     LabelsPaint = new SolidColorPaint
                     {
                         Color =  SKColors.Gray
@@ -538,13 +539,12 @@ namespace SCPP_WinUI_CS
             List<string> labelsList = JsonSerializer.Deserialize<List<string>>(resObj["labels"].ToString());
             List<string> cutList = labelsList.Select(s => s.Substring(0, Math.Min(s.Length, 5))).ToList();
 
-            
-
             IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
             new Axis
                 {
                     Labels = cutList,
-                    Padding = new LiveChartsCore.Drawing.Padding {Top = (float)(CategoryChart.ActualHeight  -90)},
+                    //Padding = new LiveChartsCore.Drawing.Padding {Top = (float)(CategoryChart.ActualHeight  -90)},
+                    Padding =  new LiveChartsCore.Drawing.Padding {Top = -50},
                     //LabelsRotation = -20,
                     TextSize = 14,
                     //LabelsAlignment = LiveChartsCore.Drawing.Align.End,
