@@ -87,8 +87,8 @@ namespace SCPP_WinUI_CS
             fechaTermino = new DateOnly()
         };
 
-        ObservableCollection<Categoria> categorias = new ObservableCollection<Categoria>();
-        ObservableCollection<TipoDoc> tipoDocs = new ObservableCollection<TipoDoc>();
+        public ObservableCollection<Categoria> categorias { get; set; } = new();
+        public ObservableCollection<TipoDoc> tipoDocs { get; set; } = new();
 
         public ObservableCollection<GridRow> gridRows { get; set; } = new();
 

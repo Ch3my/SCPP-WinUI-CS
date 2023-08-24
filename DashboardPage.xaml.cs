@@ -41,6 +41,7 @@ using CommunityToolkit.WinUI.Helpers;
 using LiveChartsCore.Kernel;
 using LiveChartsCore.SkiaSharpView.VisualElements;
 using static System.Net.Mime.MediaTypeNames;
+using System.Diagnostics;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -56,11 +57,25 @@ namespace SCPP_WinUI_CS
             this.InitializeComponent();
             // Al iniciar setea las fecha Inicio y termino antes de llamar a API
             this.SetFechaIniTerTipoDoc();
-            this.GetCategorias();
-            this.GetTipoDoc();
-            this.GetDocs();
             this.BuildHistoricChart();
             this.BuildCatGraph();
+            this.GetCategorias();
+            this.CreateAsync();
+            // Activamos el listener a voluntar para evitar que se llame cuando no queremos
+            getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
+            getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
+        }
+        async public void CreateAsync()
+        {
+            await this.GetTipoDoc();
+            this.GetDocs();
+
+            // Obtain the DispatcherQueue from the current window
+            //DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+            // Use the DispatcherQueue to reattach the event handler
+            //dispatcherQueue.TryEnqueue(() => {
+            //    getDocsFormTipoDocInput.SelectionChanged += TipoDocCombo_SelectionChanged;
+            //});
         }
         public void SetFechaIniTerTipoDoc()
         {
@@ -76,10 +91,14 @@ namespace SCPP_WinUI_CS
             DateTime startOfNextMonth = new DateTime(today.Year, today.Month, 1).AddMonths(1);
             DateTime lastDayOfMonth = startOfNextMonth.AddDays(-1);
             getDocsForm.fechaTermino = DateOnly.FromDateTime(lastDayOfMonth.Date);
+
+            // Tenemos que setear las fechas a los inputs a mano para evitar el double fire
+            DateOnlyToDateTimeOffsetConverter converter = new DateOnlyToDateTimeOffsetConverter();
+            getDocsFormFecIniInput.Date = (DateTimeOffset?)converter.Convert(getDocsForm.fechaInicio);
+            getDocsFormFecTerInput.Date = (DateTimeOffset?)converter.Convert(getDocsForm.fechaTermino);
         }
         async public void GetCategorias()
         {
-
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/categorias?sessionHash={App.sessionHash}"
                );
@@ -91,22 +110,24 @@ namespace SCPP_WinUI_CS
                 Id = 0,
                 Descripcion = "(Todos)"
             };
-            categorias.Clear();
+            // Por alguna razon categorias.Clear(); daba null exception asi que resolvimos asi
+            categorias = new ObservableCollection<Categoria>();
             categorias.Add(allCat);
             foreach (Categoria c in categoriaList)
             {
-               categorias.Add(c);
+                categorias.Add(c);
             }
             getDocsFormCategInput.SelectedIndex = 0;
         }
-        async public void GetTipoDoc()
+        async public Task GetTipoDoc()
         {
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/tipo-docs?sessionHash={App.sessionHash}"
                );
             response.EnsureSuccessStatusCode();
             List<TipoDoc> tipoDocList = JsonSerializer.Deserialize<List<TipoDoc>>(response.Content.ReadAsStringAsync().Result);
-            tipoDocs.Clear();
+            // Por alguna razon tipoDocs.Clear() daba null exception asi que resolvimos asi
+            tipoDocs = new ObservableCollection<TipoDoc>();
             foreach (TipoDoc t in tipoDocList)
             {
                 tipoDocs.Add(t);
@@ -125,6 +146,9 @@ namespace SCPP_WinUI_CS
             // response.EnsureSuccessStatusCode se podria cambiar a otro tipo de control de Error
             if (!response.IsSuccessStatusCode)
             {
+                DocumentosNotification.Content = "Error al consumir API GetDocs()";
+                DocumentosNotification.Background = AppColors.RedBrush;
+                DocumentosNotification.Show(3000);
                 return;
             }
             // Toma el JSON y lo parsea a una lista de Documentos
@@ -240,15 +264,16 @@ namespace SCPP_WinUI_CS
 
         private void FilterCalendar_DateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
         {
-            if(!getDocsFormFecIniInput.IsEnabled)
+            // Solo actualiza cuando nos llaman explicitamente
+            // Se ejecuta en el DateChanged pero se desactivo el TwoWay binding por doble fire
+            DateOnly dateOnlyValue = new DateOnly(args.NewDate.GetValueOrDefault().Year, args.NewDate.GetValueOrDefault().Month, args.NewDate.GetValueOrDefault().Day);
+            if (sender.Name == "getDocsFormFecIniInput")
             {
-                getDocsFormFecIniInput.IsEnabled = true;
-                return;
+                getDocsForm.fechaInicio = dateOnlyValue;
             }
-            if(!getDocsFormFecTerInput.IsEnabled)
+            if (sender.Name == "getDocsFormFecTerInput")
             {
-                getDocsFormFecTerInput.IsEnabled = true;
-                return;
+                getDocsForm.fechaTermino = dateOnlyValue;
             }
             this.GetDocs();
         }
@@ -505,13 +530,19 @@ namespace SCPP_WinUI_CS
 
         private void TipoDocCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            SetFechaIniTerTipoDoc();
-            if(!getDocsFormTipoDocInput.IsEnabled)
+            if (!getDocsFormTipoDocInput.IsEnabled)
             {
                 getDocsFormTipoDocInput.IsEnabled = true;
                 return;
             }
+            //Desactivamos listener para operar y luego activamos
+            //Evitar double fire
+            getDocsFormFecIniInput.DateChanged -= FilterCalendar_DateChanged;
+            getDocsFormFecTerInput.DateChanged -= FilterCalendar_DateChanged;
+            SetFechaIniTerTipoDoc();
             this.GetDocs();
+            getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
+            getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
         }
 
         async public void BuildCatGraph()
@@ -606,8 +637,8 @@ namespace SCPP_WinUI_CS
 
         private void CategCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            
-                if(!getDocsFormCategInput.IsEnabled)
+
+            if (!getDocsFormCategInput.IsEnabled)
             {
                 // Al cargar datos desde API ejecuta trigger, cuando trigger la primera vez habilitamos
                 // y volvemos, no necesitamos buscar documentos porque solo se cargo la lista de
@@ -618,5 +649,20 @@ namespace SCPP_WinUI_CS
             this.GetDocs();
         }
 
+        private void InitialApiCall_Click(object sender, RoutedEventArgs e)
+        {
+            this.GetCategorias();
+            this.GetTipoDoc();
+        }
+
+        private void DefaultDateTipoDoc_Click(object sender, RoutedEventArgs e)
+        {
+            getDocsFormFecIniInput.DateChanged -= FilterCalendar_DateChanged;
+            getDocsFormFecTerInput.DateChanged -= FilterCalendar_DateChanged;
+            this.SetFechaIniTerTipoDoc();
+            this.GetDocs();
+            getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
+            getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
+        }
     }
 }

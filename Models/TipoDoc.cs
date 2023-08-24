@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SCPP_WinUI_CS
 {
-    class TipoDoc
+    public class TipoDoc
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }
