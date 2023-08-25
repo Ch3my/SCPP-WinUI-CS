@@ -160,6 +160,10 @@ namespace SCPP_WinUI_CS
             {
                 pageType = typeof(ConfigPage);
             }
+            if (selectedNavItem.Name == "assets")
+            {
+                pageType = typeof(AssetsPage);
+            }
 
             _ = contentFrame.Navigate(pageType);
         }

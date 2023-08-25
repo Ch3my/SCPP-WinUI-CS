@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="SCPP_WinUI_CS.AssetsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SCPP_WinUI_CS"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.UI.Controls"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    mc:Ignorable="d">
+
+    <Grid>
+        <toolkit:InAppNotification
+            x:Name="Notification"
+            AnimationDuration="00:00:00.1000000"
+            ShowDismissButton="True"
+            StackMode="Replace" />
+        <Grid>
+            <!--  Importante 3 Columnas porque se considera el GridSplitter  -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="550" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    Grid.Row="0"
+                    Margin="10,0,0,5"
+                    FontSize="24"
+                    FontWeight="Bold"
+                    Text="Assets" />
+                <toolkit:DataGrid
+                    Grid.Row="1"
+                    AlternatingRowBackground="{ThemeResource SolidBackgroundFillColorTertiaryBrush}"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    ItemsSource="{Binding assetRows}"
+                    SelectionChanged="Assets_SelectionChanged"
+                    SelectionMode="Single">
+                    <toolkit:DataGrid.Columns>
+                        <toolkit:DataGridTextColumn
+                            Binding="{Binding Path=Fecha}"
+                            CanUserSort="False"
+                            Header="Fecha"
+                            Tag="fecha" />
+
+                        <toolkit:DataGridTextColumn
+                            Width="200"
+                            Binding="{Binding Path=Descripcion}"
+                            CanUserSort="False"
+                            Header="Descripcion"
+                            Tag="descripcion" />
+
+                    </toolkit:DataGrid.Columns>
+                </toolkit:DataGrid>
+            </Grid>
+            <!--  Column Grid Splitter  -->
+            <toolkit:GridSplitter Grid.Column="1" Width="16" />
+            <!--  Image Display  -->
+            <Grid Grid.Column="2">
+                <ScrollViewer
+                    x:Name="scrollViewer"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto"
+                    ZoomMode="Enabled">
+                    <Image x:Name="imageControl" Stretch="None" />
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+    </Grid>
+</Page>

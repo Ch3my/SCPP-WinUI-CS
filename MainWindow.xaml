@@ -46,6 +46,11 @@
                         <SymbolIcon Symbol="Contact" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem x:Name="assets" Content="Assets">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Slideshow" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <NavigationView.FooterMenuItems>

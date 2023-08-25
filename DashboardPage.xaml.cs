@@ -42,6 +42,8 @@ using LiveChartsCore.Kernel;
 using LiveChartsCore.SkiaSharpView.VisualElements;
 using static System.Net.Mime.MediaTypeNames;
 using System.Diagnostics;
+using SCPP_WinUI_CS.PageModels;
+using static SCPP_WinUI_CS.PageModels.DashboardPageViewModel;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -52,24 +54,33 @@ namespace SCPP_WinUI_CS
     /// </summary>
     public sealed partial class Dashboard : Page
     {
+        DashboardPageViewModel viewModel;
         public Dashboard()
         {
             this.InitializeComponent();
+            viewModel = new DashboardPageViewModel();
+            this.DataContext = viewModel;
+
             // Al iniciar setea las fecha Inicio y termino antes de llamar a API
             this.SetFechaIniTerTipoDoc();
             this.BuildHistoricChart();
             this.BuildCatGraph();
             this.GetCategorias();
+            // NOTA. Esto no es awaited
             this.CreateAsync();
             // Activamos el listener a voluntar para evitar que se llame cuando no queremos
             getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
             getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
+
         }
         async public void CreateAsync()
         {
             await this.GetTipoDoc();
             this.GetDocs();
 
+            // NOTA. Aparentemente algunos eventos quedan en Queue y aunque agregemos el event listener
+            // despues de ejecutar cosas el event listener puede activarse, este codigo intenta corregir eso
+            // agregando el event listener en UI Thread pero no funciono
             // Obtain the DispatcherQueue from the current window
             //DispatcherQueue dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             // Use the DispatcherQueue to reattach the event handler
@@ -80,22 +91,22 @@ namespace SCPP_WinUI_CS
         public void SetFechaIniTerTipoDoc()
         {
             DateOnly today = DateOnly.FromDateTime(DateTime.Today);
-            getDocsForm.fechaInicio = new DateOnly(today.Year, today.Month, 1);
+            viewModel.FechaInicio = new DateOnly(today.Year, today.Month, 1);
 
             // Si es Ahorro o Ingreso Modificamos fechaInicio a ser 1 dia del Año
-            if (getDocsForm.fk_tipoDoc == 2 || getDocsForm.fk_tipoDoc == 3)
+            if (viewModel.Fk_tipoDoc == 2 || viewModel.Fk_tipoDoc == 3)
             {
-                getDocsForm.fechaInicio = DateOnly.FromDateTime(new DateTime(DateTime.Now.Year, 1, 1));
+                viewModel.FechaInicio = DateOnly.FromDateTime(new DateTime(DateTime.Now.Year, 1, 1));
             }
 
             DateTime startOfNextMonth = new DateTime(today.Year, today.Month, 1).AddMonths(1);
             DateTime lastDayOfMonth = startOfNextMonth.AddDays(-1);
-            getDocsForm.fechaTermino = DateOnly.FromDateTime(lastDayOfMonth.Date);
+            viewModel.FechaTermino = DateOnly.FromDateTime(lastDayOfMonth.Date);
 
             // Tenemos que setear las fechas a los inputs a mano para evitar el double fire
             DateOnlyToDateTimeOffsetConverter converter = new DateOnlyToDateTimeOffsetConverter();
-            getDocsFormFecIniInput.Date = (DateTimeOffset?)converter.Convert(getDocsForm.fechaInicio);
-            getDocsFormFecTerInput.Date = (DateTimeOffset?)converter.Convert(getDocsForm.fechaTermino);
+            getDocsFormFecIniInput.Date = (DateTimeOffset?)converter.Convert(viewModel.FechaInicio);
+            getDocsFormFecTerInput.Date = (DateTimeOffset?)converter.Convert(viewModel.FechaTermino);
         }
         async public void GetCategorias()
         {
@@ -111,11 +122,12 @@ namespace SCPP_WinUI_CS
                 Descripcion = "(Todos)"
             };
             // Por alguna razon categorias.Clear(); daba null exception asi que resolvimos asi
-            categorias = new ObservableCollection<Categoria>();
-            categorias.Add(allCat);
+            viewModel.Categorias.Clear();
+            //categorias = new ObservableCollection<Categoria>();
+            viewModel.Categorias.Add(allCat);
             foreach (Categoria c in categoriaList)
             {
-                categorias.Add(c);
+                viewModel.Categorias.Add(c);
             }
             getDocsFormCategInput.SelectedIndex = 0;
         }
@@ -126,22 +138,32 @@ namespace SCPP_WinUI_CS
                );
             response.EnsureSuccessStatusCode();
             List<TipoDoc> tipoDocList = JsonSerializer.Deserialize<List<TipoDoc>>(response.Content.ReadAsStringAsync().Result);
-            // Por alguna razon tipoDocs.Clear() daba null exception asi que resolvimos asi
-            tipoDocs = new ObservableCollection<TipoDoc>();
+            viewModel.TipoDocs.Clear();
             foreach (TipoDoc t in tipoDocList)
             {
-                tipoDocs.Add(t);
+                viewModel.TipoDocs.Add(t);
             }
             // Comenzamos con el primer elemento que correspode a Id = 1
-            getDocsFormTipoDocInput.SelectedIndex = 0;
+            getDocsFormTipoDocInput.SelectedValue = 1;
         }
         async public void GetDocs()
         {
+            Dictionary<string, object> urlArg = new Dictionary<string, object>();
+            urlArg["sessionHash"] = App.sessionHash;
+            urlArg["fechaInicio"] = viewModel.FechaInicio.ToString("yyyy-MM-dd");
+            urlArg["fechaTermino"] = viewModel.FechaTermino.ToString("yyyy-MM-dd");
+            urlArg["fk_tipoDoc"] = viewModel.Fk_tipoDoc;
+            urlArg["searchPhrase"] = viewModel.SearchPhrase;
+            if (viewModel.Fk_categoria != 0)
+            {
+                urlArg["fk_categoria"] = viewModel.Fk_categoria;
+            }
+
             HelperFunctions helperfns = new HelperFunctions();
-            string urlParams = helperfns.BuildUrlParamsFromClass(getDocsForm);
+            string urlParams = helperfns.BuildUrlParamsFromDictionary(urlArg);
 
             HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/documentos?sessionHash={App.sessionHash}&{urlParams}"
+               $"/documentos?{urlParams}"
                );
             // response.EnsureSuccessStatusCode se podria cambiar a otro tipo de control de Error
             if (!response.IsSuccessStatusCode)
@@ -153,7 +175,7 @@ namespace SCPP_WinUI_CS
             }
             // Toma el JSON y lo parsea a una lista de Documentos
             List<Documento> docsList = JsonSerializer.Deserialize<List<Documento>>(response.Content.ReadAsStringAsync().Result);
-            gridRows.Clear();
+            viewModel.GridRows.Clear();
 
             // Por ahora la unica manera que el UI se refresque
             // problemas de reactividad al asignar el ObservableCollection
@@ -164,10 +186,10 @@ namespace SCPP_WinUI_CS
                 thisRow.Monto = d.Monto.ToString("#,##0.##");
                 thisRow.Fecha = d.Fecha.ToString("dd-MM-yyyy");
                 thisRow.Id = d.Id;
-                gridRows.Add(thisRow);
+                viewModel.GridRows.Add(thisRow);
             }
 
-            SumaTotalDocs.Value = docsList.Sum(d => d.Monto).ToString("#,##0.##");
+            viewModel.SumaTotalDocs = docsList.Sum(d => d.Monto).ToString("#,##0.##");
         }
 
         private void DataGrid_RowEditEnded(object sender, CommunityToolkit.WinUI.UI.Controls.DataGridRowEditEndedEventArgs e)
@@ -212,19 +234,19 @@ namespace SCPP_WinUI_CS
 
             JsonObject apiArg = new JsonObject();
             apiArg.Add("sessionHash", App.sessionHash);
-            apiArg.Add("fk_tipoDoc", newDoc.FkTipoDoc);
-            apiArg.Add("proposito", newDoc.Proposito);
-            apiArg.Add("monto", newDoc.Monto);
-            apiArg.Add("fecha", newDoc.Fecha.ToString("yyyy-MM-dd"));
-            if (newDoc.FkTipoDoc == 1)
+            apiArg.Add("fk_tipoDoc", viewModel.NewDoc.FkTipoDoc);
+            apiArg.Add("proposito", viewModel.NewDoc.Proposito);
+            apiArg.Add("monto", viewModel.NewDoc.Monto);
+            apiArg.Add("fecha", viewModel.NewDoc.Fecha.ToString("yyyy-MM-dd"));
+            if (viewModel.NewDoc.FkTipoDoc == 1)
             {
-                apiArg.Add("fk_categoria", newDoc.FkCategoria);
+                apiArg.Add("fk_categoria", viewModel.NewDoc.FkCategoria);
             }
             else
             {
                 apiArg.Add("fk_categoria", null);
             }
-            if (newDoc.FkTipoDoc == 0)
+            if (viewModel.NewDoc.FkTipoDoc == 0)
             {
                 AddDocInfoBar.Title = "Error";
                 AddDocInfoBar.Message = "Debe seleccionar Tipo de Documento";
@@ -232,7 +254,7 @@ namespace SCPP_WinUI_CS
                 AddDocInfoBar.Opacity = 1;
                 return;
             }
-            if (newDoc.FkTipoDoc == 1 && newDoc.FkCategoria == 0)
+            if (viewModel.NewDoc.FkTipoDoc == 1 && viewModel.NewDoc.FkCategoria == 0)
             {
                 AddDocInfoBar.Title = "Error";
                 AddDocInfoBar.Message = "Debe seleccionar una categoria";
@@ -254,7 +276,7 @@ namespace SCPP_WinUI_CS
             this.GetDocs();
             this.BuildCatGraph();
             this.BuildHistoricChart();
-            newDoc.Reset();
+            viewModel.NewDoc.Reset();
 
             DocumentosNotification.Content = "Documento Grabado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
@@ -269,11 +291,11 @@ namespace SCPP_WinUI_CS
             DateOnly dateOnlyValue = new DateOnly(args.NewDate.GetValueOrDefault().Year, args.NewDate.GetValueOrDefault().Month, args.NewDate.GetValueOrDefault().Day);
             if (sender.Name == "getDocsFormFecIniInput")
             {
-                getDocsForm.fechaInicio = dateOnlyValue;
+                viewModel.FechaInicio = dateOnlyValue;
             }
             if (sender.Name == "getDocsFormFecTerInput")
             {
-                getDocsForm.fechaTermino = dateOnlyValue;
+                viewModel.FechaTermino = dateOnlyValue;
             }
             this.GetDocs();
         }
@@ -289,7 +311,7 @@ namespace SCPP_WinUI_CS
         {
             if (e.AddedItems.Count == 0)
             {
-                editDoc.Reset();
+                viewModel.EditDoc.Reset();
                 return;
             }
             GridRow selectedRow = (GridRow)e.AddedItems[0];
@@ -312,17 +334,17 @@ namespace SCPP_WinUI_CS
                 return;
             }
             List<Documento> docsList = JsonSerializer.Deserialize<List<Documento>>(response.Content.ReadAsStringAsync().Result);
-            editDoc.Reset();
+            viewModel.EditDoc.Reset();
             // Resetea errores si hubieran
             EditDocInfoBar.Opacity = 0;
             EditDocInfoBar.IsOpen = false;
 
-            editDoc.Monto = docsList[0].Monto;
-            editDoc.Id = docsList[0].Id;
-            editDoc.Proposito = docsList[0].Proposito;
-            editDoc.FkTipoDoc = docsList[0].FkTipoDoc;
-            editDoc.FkCategoria = docsList[0].FkCategoria;
-            editDoc.Fecha = docsList[0].Fecha;
+            viewModel.EditDoc.Monto = docsList[0].Monto;
+            viewModel.EditDoc.Id = docsList[0].Id;
+            viewModel.EditDoc.Proposito = docsList[0].Proposito;
+            viewModel.EditDoc.FkTipoDoc = docsList[0].FkTipoDoc;
+            viewModel.EditDoc.FkCategoria = docsList[0].FkCategoria;
+            viewModel.EditDoc.Fecha = docsList[0].Fecha;
             EditDocumentoBlade.IsOpen = true;
         }
 
@@ -336,21 +358,21 @@ namespace SCPP_WinUI_CS
 
             JsonObject apiArg = new JsonObject();
             apiArg.Add("sessionHash", App.sessionHash);
-            apiArg.Add("id", editDoc.Id);
-            apiArg.Add("fk_tipoDoc", editDoc.FkTipoDoc);
-            apiArg.Add("proposito", editDoc.Proposito);
-            apiArg.Add("monto", editDoc.Monto);
-            apiArg.Add("fecha", editDoc.Fecha.ToString("yyyy-MM-dd"));
-            if (editDoc.FkTipoDoc == 1)
+            apiArg.Add("id", viewModel.EditDoc.Id);
+            apiArg.Add("fk_tipoDoc", viewModel.EditDoc.FkTipoDoc);
+            apiArg.Add("proposito", viewModel.EditDoc.Proposito);
+            apiArg.Add("monto", viewModel.EditDoc.Monto);
+            apiArg.Add("fecha", viewModel.EditDoc.Fecha.ToString("yyyy-MM-dd"));
+            if (viewModel.EditDoc.FkTipoDoc == 1)
             {
-                apiArg.Add("fk_categoria", editDoc.FkCategoria);
+                apiArg.Add("fk_categoria", viewModel.EditDoc.FkCategoria);
             }
             else
             {
                 apiArg.Add("fk_categoria", null);
             }
 
-            if (editDoc.FkTipoDoc == 0)
+            if (viewModel.EditDoc.FkTipoDoc == 0)
             {
                 EditDocInfoBar.Title = "Error";
                 EditDocInfoBar.Message = "Debe seleccionar Tipo de Documento";
@@ -359,7 +381,7 @@ namespace SCPP_WinUI_CS
                 return;
             }
 
-            if (editDoc.FkTipoDoc == 1 && editDoc.FkCategoria == 0)
+            if (viewModel.EditDoc.FkTipoDoc == 1 && viewModel.EditDoc.FkCategoria == 0)
             {
                 EditDocInfoBar.Title = "Error";
                 EditDocInfoBar.Message = "Debe seleccionar una categoria";
@@ -394,7 +416,7 @@ namespace SCPP_WinUI_CS
             this.BuildCatGraph();
             this.BuildHistoricChart();
             EditDocumentoBlade.IsOpen = false;
-            editDoc.Reset();
+            viewModel.EditDoc.Reset();
 
             DocumentosNotification.Content = "Documento actualizado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
@@ -410,7 +432,7 @@ namespace SCPP_WinUI_CS
 
             JsonObject apiArg = new JsonObject();
             apiArg.Add("sessionHash", App.sessionHash);
-            apiArg.Add("id", editDoc.Id);
+            apiArg.Add("id", viewModel.EditDoc.Id);
 
             var request = new HttpRequestMessage(HttpMethod.Delete, "/documentos");
             request.Content = new StringContent(apiArg.ToJsonString(), Encoding.UTF8, "application/json");
@@ -441,7 +463,7 @@ namespace SCPP_WinUI_CS
             this.BuildCatGraph();
             this.BuildHistoricChart();
             EditDocumentoBlade.IsOpen = false;
-            editDoc.Reset();
+            viewModel.EditDoc.Reset();
 
             DocumentosNotification.Content = "Documento eliminado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
@@ -613,7 +635,7 @@ namespace SCPP_WinUI_CS
 
         private void EditDocTipoDoc_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (editDoc.FkTipoDoc == 1)
+            if (viewModel.EditDoc.FkTipoDoc == 1)
             {
                 EditDocCatGrid.Visibility = Visibility.Visible;
                 return;
@@ -622,7 +644,7 @@ namespace SCPP_WinUI_CS
         }
         private void NewDocTipoDoc_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (newDoc.FkTipoDoc == 1)
+            if (viewModel.NewDoc.FkTipoDoc == 1)
             {
                 NewDocCatGrid.Visibility = Visibility.Visible;
                 return;
@@ -664,5 +686,50 @@ namespace SCPP_WinUI_CS
             getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
             getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
         }
+        public LabelVisual CatGraphTitle { get; set; } =
+        new LabelVisual
+        {
+            Text = "Categorias 12 Meses",
+            TextSize = 20,
+            Paint = new SolidColorPaint(SKColors.Gray)
+        };
+        public LabelVisual HistoricTitle { get; set; } =
+            new LabelVisual
+            {
+                Text = "Historico por Tipo Doc",
+                TextSize = 20,
+                Paint = new SolidColorPaint(SKColors.Gray)
+            };
+
+        // Para formatear dentro del NumberBox Repo de Ejemplo https://github.com/sonnemaf/NumberBoxTest/blob/master/NumberBoxTest/MainPage.xaml.cs
+        private DecimalFormatter IntFormatter { get; } =
+            new DecimalFormatter
+            {
+                IsGrouped = true,
+                FractionDigits = 0,
+                IntegerDigits = 1
+            };
+
+        public IEnumerable<ICartesianAxis> HistoricYAxis = new List<Axis>
+            {
+                new Axis
+                {
+                    // Now the Y axis we will display labels as currency
+                    // LiveCharts provides some common formatters
+                    // in this case we are using the currency formatter.
+                    Labeler = Labelers.Currency,
+                    LabelsPaint = new SolidColorPaint
+                    {
+                        Color =  SKColors.Gray
+                    },
+
+                    // you could also build your own currency formatter
+                    // for example:
+                    // Labeler = (value) => value.ToString("C")
+
+                    // But the one that LiveCharts provides creates shorter labels when
+                    // the amount is in millions or trillions
+                }
+            };
     }
 }

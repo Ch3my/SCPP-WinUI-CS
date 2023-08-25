@@ -20,6 +20,11 @@ namespace SCPP_WinUI_CS
         private int _FkTipoDoc;
         private DateOnly _Fecha;
 
+        public Documento()
+        {
+
+        }
+
         [JsonPropertyName("id")]
         public int Id
         {
