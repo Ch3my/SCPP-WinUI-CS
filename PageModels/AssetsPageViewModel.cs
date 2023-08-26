@@ -14,6 +14,8 @@ namespace SCPP_WinUI_CS.PageModels
     {
         public AssetsPageViewModel() { }
         public ObservableCollection<AssetRow> assetRows { get; set; } = new();
+        public ObservableCollection<Categoria> Categorias { get; set; } = new();
+
         public GetAssetsForm getAssetsForm { get; set; } = new();
         public Asset newAsset { get; set; } = new();
         public Asset editAsset { get; set; } = new();

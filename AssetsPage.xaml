@@ -10,6 +10,10 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     mc:Ignorable="d">
 
+    <Page.Resources>
+        <local:DateOnlyToDateTimeOffsetConverter x:Key="DateOnlyToDateTimeOffsetConverter" />
+    </Page.Resources>
+
     <Grid>
         <toolkit:InAppNotification
             x:Name="Notification"
@@ -23,42 +27,263 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock
-                    Grid.Row="0"
-                    Margin="10,0,0,5"
-                    FontSize="24"
-                    FontWeight="Bold"
-                    Text="Assets" />
-                <toolkit:DataGrid
-                    Grid.Row="1"
-                    AlternatingRowBackground="{ThemeResource SolidBackgroundFillColorTertiaryBrush}"
-                    AutoGenerateColumns="False"
-                    IsReadOnly="True"
-                    ItemsSource="{Binding assetRows}"
-                    SelectionChanged="Assets_SelectionChanged"
-                    SelectionMode="Single">
-                    <toolkit:DataGrid.Columns>
-                        <toolkit:DataGridTextColumn
-                            Binding="{Binding Path=Fecha}"
-                            CanUserSort="False"
-                            Header="Fecha"
-                            Tag="fecha" />
+            <toolkit:BladeView
+                x:Name="BladeView"
+                Grid.Column="0"
+                AutoCollapseCountThreshold="4">
+                <toolkit:BladeItem
+                    Width="400"
+                    VerticalAlignment="Stretch"
+                    IsOpen="True"
+                    TitleBarVisibility="Collapsed">
+                    <ScrollViewer>
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.RowSpacing>5</Grid.RowSpacing>
+                            <TextBlock
+                                Grid.Row="0"
+                                Margin="10,0,0,5"
+                                FontSize="24"
+                                FontWeight="Bold"
+                                Text="Assets" />
+                            <!--  Barra de Botones  -->
+                            <Grid Grid.Row="1" Margin="10,0,0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
 
-                        <toolkit:DataGridTextColumn
-                            Width="200"
-                            Binding="{Binding Path=Descripcion}"
-                            CanUserSort="False"
-                            Header="Descripcion"
-                            Tag="descripcion" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
 
-                    </toolkit:DataGrid.Columns>
-                </toolkit:DataGrid>
-            </Grid>
+                                <Button Grid.Column="0" Click="AddAsset_Click">
+                                    <Button.KeyboardAccelerators>
+                                        <KeyboardAccelerator Key="A" Modifiers="Control" />
+                                    </Button.KeyboardAccelerators>
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xECC8;" />
+                                </Button>
+                                <Button Grid.Column="1" Click="RefreshAssets_Click">
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE72C;" />
+                                </Button>
+                                <Button Grid.Column="2">
+                                    <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE90F;" />
+                                </Button>
+                            </Grid>
+                            <toolkit:DataGrid
+                                Grid.Row="2"
+                                AlternatingRowBackground="{ThemeResource SolidBackgroundFillColorTertiaryBrush}"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True"
+                                ItemsSource="{Binding assetRows}"
+                                SelectionChanged="Assets_SelectionChanged"
+                                SelectionMode="Single">
+                                <toolkit:DataGrid.Columns>
+                                    <toolkit:DataGridTextColumn
+                                        Binding="{Binding Path=Fecha}"
+                                        CanUserSort="False"
+                                        Header="Fecha"
+                                        Tag="fecha" />
+
+                                    <toolkit:DataGridTextColumn
+                                        Width="200"
+                                        Binding="{Binding Path=Descripcion}"
+                                        CanUserSort="False"
+                                        Header="Descripcion"
+                                        Tag="descripcion" />
+
+                                </toolkit:DataGrid.Columns>
+                            </toolkit:DataGrid>
+                        </Grid>
+                    </ScrollViewer>
+                </toolkit:BladeItem>
+                <toolkit:BladeItem
+                    x:Name="AddAssetBlade"
+                    HorizontalAlignment="Stretch"
+                    Header="Agregar Asset"
+                    IsOpen="False"
+                    TitleBarBackground="CadetBlue">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.RowSpacing>10</Grid.RowSpacing>
+
+                        <!--  Barra de Botones  -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
+                            <Button Grid.Column="0" Click="SaveNewAsset_Click">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="E" Modifiers="Control" />
+                                </Button.KeyboardAccelerators>
+                                <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
+                            </Button>
+                            <Button Grid.Column="1">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="D" Modifiers="Control" />
+                                </Button.KeyboardAccelerators>
+                                <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74D;" />
+                            </Button>
+                        </Grid>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                x:Name="propositoInput"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Proposito" />
+                            <TextBox Grid.Column="1" Text="{Binding newAsset.Descripcion, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Fecha" />
+                            <CalendarDatePicker
+                                x:Name="newDocFechaInput"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                Date="{Binding newAsset.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
+                        </Grid>
+                        <Grid Grid.Row="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Categoria" />
+                            <ComboBox
+                                Grid.Column="1"
+                                Width="Auto"
+                                HorizontalAlignment="Stretch"
+                                DisplayMemberPath="Descripcion"
+                                ItemsSource="{Binding Categorias}"
+                                SelectedValue="{Binding newAsset.FkCategoria, Mode=TwoWay}"
+                                SelectedValuePath="Id" />
+                        </Grid>
+                        <StackPanel
+                            Grid.Row="4"
+                            VerticalAlignment="Top"
+                            Orientation="Horizontal">
+                            <Button
+                                Margin="0,0,0,10"
+                                Click="PickAFileButton_Click"
+                                Content="Agregar Archivo" />
+                            <TextBlock
+                                x:Name="PickAFileOutputTextBlock"
+                                Padding="20,5,0,0"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </toolkit:BladeItem>
+                <toolkit:BladeItem
+                    x:Name="EditAssetBlade"
+                    HorizontalAlignment="Stretch"
+                    Header="Ver Asset"
+                    IsOpen="False"
+                    TitleBarBackground="CadetBlue">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.RowSpacing>10</Grid.RowSpacing>
+
+                        <!--  Barra de Botones  -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
+                            <Button Grid.Column="1">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="D" Modifiers="Control" />
+                                </Button.KeyboardAccelerators>
+                                <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74D;" />
+                            </Button>
+                        </Grid>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Proposito" />
+                            <TextBox
+                                Grid.Column="1"
+                                IsEnabled="False"
+                                Text="{Binding editAsset.Descripcion}" />
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Fecha" />
+                            <CalendarDatePicker
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                Date="{Binding editAsset.Fecha, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
+                                IsEnabled="False" />
+                        </Grid>
+                        <Grid Grid.Row="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
+                            <TextBlock
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="Categoria" />
+                            <ComboBox
+                                Grid.Column="1"
+                                Width="Auto"
+                                HorizontalAlignment="Stretch"
+                                DisplayMemberPath="Descripcion"
+                                IsEnabled="False"
+                                ItemsSource="{Binding Categorias}"
+                                SelectedValue="{Binding editAsset.FkCategoria}"
+                                SelectedValuePath="Id" />
+                        </Grid>
+                    </Grid>
+                </toolkit:BladeItem>
+            </toolkit:BladeView>
+
             <!--  Column Grid Splitter  -->
             <toolkit:GridSplitter Grid.Column="1" Width="16" />
             <!--  Image Display  -->
@@ -68,7 +293,11 @@
                     HorizontalScrollBarVisibility="Auto"
                     VerticalScrollBarVisibility="Auto"
                     ZoomMode="Enabled">
-                    <Image x:Name="imageControl" Stretch="None" />
+                    <Image
+                        x:Name="imageControl"
+                        ManipulationCompleted="Image_ManipulationCompleted"
+                        ManipulationDelta="Image_ManipulationDelta"
+                        Stretch="None" />
                 </ScrollViewer>
             </Grid>
         </Grid>

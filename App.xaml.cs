@@ -36,7 +36,9 @@ namespace SCPP_WinUI_CS
     {
         public static HttpClient httpClient = new HttpClient();
         public static string sessionHash = "";
-        private Window m_window;
+        //private Window m_window;
+        // Para poder llamar a file Picker es necesario tener acceso a este objeto Window
+        public static Window? Window { get; private set; }
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -63,8 +65,8 @@ namespace SCPP_WinUI_CS
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            m_window = new MainWindow();
-            m_window.Activate();
+            Window = new MainWindow();
+            Window.Activate();
         }
 
         static public void LoadConfig()

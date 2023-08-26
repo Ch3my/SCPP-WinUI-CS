@@ -17,9 +17,14 @@ using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+using Windows.Storage.Streams;
+using WinRT.Interop;
 using static SCPP_WinUI_CS.Dashboard;
 using static SCPP_WinUI_CS.PageModels.AssetsPageViewModel;
 using static System.Net.Mime.MediaTypeNames;
@@ -45,11 +50,9 @@ namespace SCPP_WinUI_CS
             viewModel = new AssetsPageViewModel();
             this.DataContext = viewModel;
             this.GetData();
-
+            this.GetCategorias();
 
             imageControl.ManipulationMode = ManipulationModes.Scale | ManipulationModes.TranslateX | ManipulationModes.TranslateY;
-            imageControl.ManipulationDelta += Image_ManipulationDelta;
-            imageControl.ManipulationCompleted += Image_ManipulationCompleted;
         }
 
         async public void GetData()
@@ -82,7 +85,7 @@ namespace SCPP_WinUI_CS
         {
             if (e.AddedItems.Count == 0)
             {
-            //return;
+                //return;
             }
             AssetRow selectedRow = (AssetRow)e.AddedItems[0];
             Dictionary<string, object> urlArg = new Dictionary<string, object>();
@@ -116,6 +119,9 @@ namespace SCPP_WinUI_CS
 
             // Assign the BitmapImage to the Source property of the Image control
             imageControl.Source = bitmapImage;
+
+            // Abrimos Blade para mostrar info adicional que podria tener
+            EditAssetBlade.IsOpen = true;
         }
         private void Image_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
@@ -141,6 +147,76 @@ namespace SCPP_WinUI_CS
         {
             var transform = (CompositeTransform)imageControl.RenderTransform;
             lastPanPosition = new Point(transform.TranslateX, transform.TranslateY);
+        }
+        async public void GetCategorias()
+        {
+            HttpResponseMessage response = await App.httpClient.GetAsync(
+               $"/categorias?sessionHash={App.sessionHash}"
+               );
+            response.EnsureSuccessStatusCode();
+            List<Categoria> categoriaList = JsonSerializer.Deserialize<List<Categoria>>(response.Content.ReadAsStringAsync().Result);
+            viewModel.Categorias.Clear();
+            foreach (Categoria c in categoriaList)
+            {
+                viewModel.Categorias.Add(c);
+            }
+        }
+
+        private void AddAsset_Click(object sender, RoutedEventArgs e)
+        {
+            AddAssetBlade.IsOpen = true;
+        }
+
+        private void RefreshAssets_Click(object sender, RoutedEventArgs e)
+        {
+            this.GetData();
+        }
+
+        private void SaveNewAsset_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.newAsset.Reset();
+        }
+
+        private async void PickAFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Se hizo asi, el ejemplo no funcionaba, En el futuro se podria cambiar
+            // a un objeto App.Window privado como estaba cuando se inicio el proyecto
+            FileOpenPicker fileOpenPicker = new()
+            {
+                ViewMode = PickerViewMode.Thumbnail,
+                FileTypeFilter = { ".jpg", ".jpeg", ".png"},
+            };
+
+            nint windowHandle = WindowNative.GetWindowHandle(App.Window);
+            InitializeWithWindow.Initialize(fileOpenPicker, windowHandle);
+
+            StorageFile selectedFile = await fileOpenPicker.PickSingleFileAsync();
+
+            if (selectedFile != null)
+            {
+                // Mostrar imagen
+                using (IRandomAccessStream fileStream = await selectedFile.OpenAsync(FileAccessMode.Read))
+                {
+                    BitmapImage image = new BitmapImage();
+                    await image.SetSourceAsync(fileStream);
+                    imageControl.Source = image;
+                }
+                // guardar base64 en variable por si guardan
+                viewModel.newAsset.AssetData = await ConvertFileToBase64(selectedFile);
+            }
+        }
+        private async Task<string> ConvertFileToBase64(StorageFile file)
+        {
+            using (IRandomAccessStream fileStream = await file.OpenAsync(FileAccessMode.Read))
+            {
+                using (DataReader reader = new DataReader(fileStream))
+                {
+                    await reader.LoadAsync((uint)fileStream.Size);
+                    byte[] byteArray = new byte[fileStream.Size];
+                    reader.ReadBytes(byteArray);
+                    return Convert.ToBase64String(byteArray);
+                }
+            }
         }
     }
 }
