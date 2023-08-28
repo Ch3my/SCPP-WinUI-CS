@@ -7,16 +7,21 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
+using SCPP_WinUI_CS.Helpers;
 using SCPP_WinUI_CS.Models;
 using SCPP_WinUI_CS.PageModels;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
@@ -39,7 +44,7 @@ namespace SCPP_WinUI_CS
     /// </summary>
     public sealed partial class AssetsPage : Page
     {
-        private AssetsPageViewModel viewModel;
+        private AssetsPageViewModel ViewModel;
 
         private double scaleFactor = 1.0;
         private Point lastPanPosition;
@@ -47,8 +52,8 @@ namespace SCPP_WinUI_CS
         public AssetsPage()
         {
             this.InitializeComponent();
-            viewModel = new AssetsPageViewModel();
-            this.DataContext = viewModel;
+            ViewModel = new AssetsPageViewModel();
+            this.DataContext = ViewModel;
             this.GetData();
             this.GetCategorias();
 
@@ -58,7 +63,7 @@ namespace SCPP_WinUI_CS
         async public void GetData()
         {
             HelperFunctions helperfns = new HelperFunctions();
-            string urlParams = helperfns.BuildUrlParamsFromStruct(viewModel.getAssetsForm);
+            string urlParams = helperfns.BuildUrlParamsFromStruct(ViewModel.getAssetsForm);
 
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/assets?sessionHash={App.sessionHash}&{urlParams}"
@@ -70,22 +75,25 @@ namespace SCPP_WinUI_CS
             }
             List<Asset> assetsList =
                 JsonSerializer.Deserialize<List<Asset>>(response.Content.ReadAsStringAsync().Result);
-            viewModel.assetRows.Clear();
+            ViewModel.assetRows.Clear();
             foreach (Asset a in assetsList)
             {
                 AssetRow thisRow = new AssetRow();
                 thisRow.Descripcion = a.Descripcion;
                 thisRow.Fecha = a.Fecha.ToString("dd-MM-yyyy");
                 thisRow.Id = a.Id;
-                viewModel.assetRows.Add(thisRow);
+                ViewModel.assetRows.Add(thisRow);
             }
         }
 
         async private void Assets_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            ViewModel.EditAsset.Reset();
+            imageControl.Source = null;
+            this.ResetImagePanZoom();
             if (e.AddedItems.Count == 0)
             {
-                //return;
+                return;
             }
             AssetRow selectedRow = (AssetRow)e.AddedItems[0];
             Dictionary<string, object> urlArg = new Dictionary<string, object>();
@@ -103,10 +111,10 @@ namespace SCPP_WinUI_CS
                 return;
             }
             List<Asset> assetList = JsonSerializer.Deserialize<List<Asset>>(response.Content.ReadAsStringAsync().Result);
-            viewModel.editAsset = assetList.FirstOrDefault();
+            ViewModel.EditAsset.Clone(assetList.FirstOrDefault());
             // Quitamos cabecera data:image/png;base64 porque no la necesitamos
             // la guardamos en DB porque puede ser util
-            string base64Image = viewModel.editAsset.AssetData.Split(',')[1];
+            string base64Image = ViewModel.EditAsset.AssetData.Split(',')[1];
             // Decode the Base64 string to a byte array
             byte[] imageBytes = Convert.FromBase64String(base64Image);
             BitmapImage bitmapImage = new BitmapImage();
@@ -125,7 +133,7 @@ namespace SCPP_WinUI_CS
         }
         private void Image_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
-            // Apply zoom
+            // Apply zoom, aparentemente solo aplica a pinch gesture. Quiza halla que quitar ZoomEnabled al ScrollViewer
             scaleFactor *= e.Delta.Scale;
 
             // Apply translation
@@ -155,10 +163,10 @@ namespace SCPP_WinUI_CS
                );
             response.EnsureSuccessStatusCode();
             List<Categoria> categoriaList = JsonSerializer.Deserialize<List<Categoria>>(response.Content.ReadAsStringAsync().Result);
-            viewModel.Categorias.Clear();
+            ViewModel.Categorias.Clear();
             foreach (Categoria c in categoriaList)
             {
-                viewModel.Categorias.Add(c);
+                ViewModel.Categorias.Add(c);
             }
         }
 
@@ -172,9 +180,34 @@ namespace SCPP_WinUI_CS
             this.GetData();
         }
 
-        private void SaveNewAsset_Click(object sender, RoutedEventArgs e)
+        private async void SaveNewAsset_Click(object sender, RoutedEventArgs e)
         {
-            viewModel.newAsset.Reset();
+            // Verificar datos
+            if(ViewModel.NewAsset.FkCategoria == 0)
+            {
+                return;
+            }
+
+            JsonObject apiArg = new JsonObject();
+            apiArg["sessionHash"] = App.sessionHash;
+            apiArg["fecha"] = ViewModel.NewAsset.Fecha.ToString("yyyy-MM-dd");
+            apiArg["descripcion"] = ViewModel.NewAsset.Descripcion;
+            apiArg["fk_categoria"] = ViewModel.NewAsset.FkCategoria;
+            apiArg["assetData"] = ViewModel.NewAsset.AssetData;
+
+            HttpResponseMessage response = await App.httpClient.PostAsJsonAsync(
+                $"/assets", apiArg);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // TODO tell user
+                return;
+            }
+            this.GetData();
+            ViewModel.NewAsset.Reset();
+            AddAssetBlade.IsOpen = false;
+            imageControl.Source = null;
+            this.ResetImagePanZoom();
         }
 
         private async void PickAFileButton_Click(object sender, RoutedEventArgs e)
@@ -184,7 +217,7 @@ namespace SCPP_WinUI_CS
             FileOpenPicker fileOpenPicker = new()
             {
                 ViewMode = PickerViewMode.Thumbnail,
-                FileTypeFilter = { ".jpg", ".jpeg", ".png"},
+                FileTypeFilter = { ".jpg", ".jpeg", ".png" },
             };
 
             nint windowHandle = WindowNative.GetWindowHandle(App.Window);
@@ -194,15 +227,26 @@ namespace SCPP_WinUI_CS
 
             if (selectedFile != null)
             {
+                this.ResetImagePanZoom();
+
+                // Comprimir imagen
+                CompressImg compressImg = new CompressImg();
+                string compressImgPath = await compressImg.Compress(selectedFile);
+                StorageFile compressFile = await StorageFile.GetFileFromPathAsync(compressImgPath);
+
+                // Trabajamos siempre con el archivo comprimido
                 // Mostrar imagen
-                using (IRandomAccessStream fileStream = await selectedFile.OpenAsync(FileAccessMode.Read))
+                using (IRandomAccessStream fileStream = await compressFile.OpenAsync(FileAccessMode.Read))
                 {
                     BitmapImage image = new BitmapImage();
                     await image.SetSourceAsync(fileStream);
                     imageControl.Source = image;
                 }
                 // guardar base64 en variable por si guardan
-                viewModel.newAsset.AssetData = await ConvertFileToBase64(selectedFile);
+                // como en la DB se guarda el contentType lo agregamos aca
+                string base64File = "data:" + compressFile.ContentType + ";base64,";
+                base64File += await ConvertFileToBase64(compressFile);
+                ViewModel.NewAsset.AssetData = base64File;
             }
         }
         private async Task<string> ConvertFileToBase64(StorageFile file)
@@ -217,6 +261,54 @@ namespace SCPP_WinUI_CS
                     return Convert.ToBase64String(byteArray);
                 }
             }
+        }
+
+        private async void DeleteAsset_Click(object sender, RoutedEventArgs e)
+        {
+            JsonObject apiArg = new JsonObject();
+            apiArg.Add("sessionHash", App.sessionHash);
+            apiArg.Add("id", ViewModel.EditAsset.Id);
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, "/assets");
+            request.Content = new StringContent(apiArg.ToJsonString(), Encoding.UTF8, "application/json");
+            request.Headers.Add("X-HTTP-Method-Override", "DELETE");
+            var response = await App.httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+            EditAssetBlade.IsOpen = false;
+            ViewModel.EditAsset.Reset();
+            imageControl.Source = null;
+            this.GetData();
+            this.ResetImagePanZoom();
+        }
+
+        private void BladeClosed(object sender, CommunityToolkit.WinUI.UI.Controls.BladeItem e)
+        {
+            if (e.Name == "EditAssetBlade")
+            {
+                ViewModel.EditAsset.Reset();
+                imageControl.Source = null;
+                AssetsDatagrid.SelectedIndex = -1;
+            }
+        }
+        private void ResetImagePanZoom()
+        {
+            // Reset scale and position
+            scaleFactor = 1.0;
+            lastPanPosition = new Point(0, 0);
+            // Este es el que maneja el Zoom en Windows no Touch
+            scrollViewer.ZoomToFactor(1);
+
+            // Apply transformations
+            imageControl.RenderTransform = new CompositeTransform
+            {
+                ScaleX = scaleFactor,
+                ScaleY = scaleFactor,
+                TranslateX = lastPanPosition.X,
+                TranslateY = lastPanPosition.Y
+            };
         }
     }
 }

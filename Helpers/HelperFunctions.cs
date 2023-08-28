@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace SCPP_WinUI_CS
+namespace SCPP_WinUI_CS.Helpers
 {
     class HelperFunctions
     {

@@ -10,15 +10,16 @@ using SCPP_WinUI_CS.Models;
 
 namespace SCPP_WinUI_CS.PageModels
 {
-    public class AssetsPageViewModel : ObservableObject
+    public partial class AssetsPageViewModel : ObservableObject
     {
         public AssetsPageViewModel() { }
         public ObservableCollection<AssetRow> assetRows { get; set; } = new();
         public ObservableCollection<Categoria> Categorias { get; set; } = new();
 
         public GetAssetsForm getAssetsForm { get; set; } = new();
-        public Asset newAsset { get; set; } = new();
-        public Asset editAsset { get; set; } = new();
+        public Asset EditAsset { get; set; } = new();
+        [ObservableProperty]
+        private Asset _newAsset = new();
         public struct GetAssetsForm
         {
             public string searchPhrase { get; set; }

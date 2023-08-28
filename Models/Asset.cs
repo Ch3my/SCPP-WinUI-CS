@@ -27,11 +27,21 @@ namespace SCPP_WinUI_CS.Models
 
         public void Reset()
         {
-            _id = 0;
-            _fecha = DateOnly.FromDateTime(DateTime.Now);
-            _descripcion = "";
-            _assetData = "";
-            _fkCategoria = 0;
+            Id = 0;
+            Fecha = DateOnly.FromDateTime(DateTime.Now);
+            Descripcion = "";
+            AssetData = "";
+            FkCategoria = 0;
+        }
+
+        public void Clone(Asset other)
+        {
+            // Para que se ejecute la reactividad
+            Id = other.Id;
+            Fecha = other.Fecha;
+            Descripcion = other.Descripcion;
+            AssetData = other.AssetData;
+            FkCategoria = other.FkCategoria;
         }
 
         [JsonPropertyName("id")]

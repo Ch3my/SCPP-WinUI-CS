@@ -28,7 +28,8 @@
         <toolkit:BladeView
             x:Name="BladeView"
             Grid.Column="0"
-            AutoCollapseCountThreshold="4">
+            AutoCollapseCountThreshold="4"
+            BladeClosed="BladeClosed">
             <toolkit:BladeItem
                 Width="400"
                 VerticalAlignment="Stretch"

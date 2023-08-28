@@ -44,6 +44,7 @@ using static System.Net.Mime.MediaTypeNames;
 using System.Diagnostics;
 using SCPP_WinUI_CS.PageModels;
 using static SCPP_WinUI_CS.PageModels.DashboardPageViewModel;
+using SCPP_WinUI_CS.Helpers;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -277,6 +278,7 @@ namespace SCPP_WinUI_CS
             this.BuildCatGraph();
             this.BuildHistoricChart();
             viewModel.NewDoc.Reset();
+            AgregarDocumentoBlade.IsOpen = false;
 
             DocumentosNotification.Content = "Documento Grabado correctamente";
             DocumentosNotification.Background = AppColors.GreenBrush;
@@ -731,5 +733,13 @@ namespace SCPP_WinUI_CS
                     // the amount is in millions or trillions
                 }
             };
+
+        private void BladeClosed(object sender, CommunityToolkit.WinUI.UI.Controls.BladeItem e)
+        {
+            if (e.Name == "EditDocumentoBlade")
+            {
+                DocsDataGrid.SelectedIndex = -1;
+            }
+        }
     }
 }

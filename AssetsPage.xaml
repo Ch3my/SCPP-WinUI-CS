@@ -28,9 +28,9 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <toolkit:BladeView
-                x:Name="BladeView"
                 Grid.Column="0"
-                AutoCollapseCountThreshold="4">
+                AutoCollapseCountThreshold="4"
+                BladeClosed="BladeClosed">
                 <toolkit:BladeItem
                     Width="400"
                     VerticalAlignment="Stretch"
@@ -74,6 +74,7 @@
                                 </Button>
                             </Grid>
                             <toolkit:DataGrid
+                                x:Name="AssetsDatagrid"
                                 Grid.Row="2"
                                 AlternatingRowBackground="{ThemeResource SolidBackgroundFillColorTertiaryBrush}"
                                 AutoGenerateColumns="False"
@@ -148,7 +149,7 @@
                                 Grid.Column="0"
                                 VerticalAlignment="Center"
                                 Text="Proposito" />
-                            <TextBox Grid.Column="1" Text="{Binding newAsset.Descripcion, Mode=TwoWay}" />
+                            <TextBox Grid.Column="1" Text="{Binding NewAsset.Descripcion, Mode=TwoWay}" />
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
@@ -164,7 +165,7 @@
                                 x:Name="newDocFechaInput"
                                 Grid.Column="1"
                                 HorizontalAlignment="Stretch"
-                                Date="{Binding newAsset.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
+                                Date="{Binding NewAsset.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}" />
                         </Grid>
                         <Grid Grid.Row="3">
                             <Grid.ColumnDefinitions>
@@ -182,7 +183,7 @@
                                 HorizontalAlignment="Stretch"
                                 DisplayMemberPath="Descripcion"
                                 ItemsSource="{Binding Categorias}"
-                                SelectedValue="{Binding newAsset.FkCategoria, Mode=TwoWay}"
+                                SelectedValue="{Binding NewAsset.FkCategoria, Mode=TwoWay}"
                                 SelectedValuePath="Id" />
                         </Grid>
                         <StackPanel
@@ -221,7 +222,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>5</Grid.ColumnSpacing>
-                            <Button Grid.Column="1">
+                            <Button Grid.Column="1" Click="DeleteAsset_Click">
                                 <Button.KeyboardAccelerators>
                                     <KeyboardAccelerator Key="D" Modifiers="Control" />
                                 </Button.KeyboardAccelerators>
@@ -242,7 +243,7 @@
                             <TextBox
                                 Grid.Column="1"
                                 IsEnabled="False"
-                                Text="{Binding editAsset.Descripcion}" />
+                                Text="{Binding EditAsset.Descripcion, Mode=TwoWay}" />
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
@@ -257,7 +258,7 @@
                             <CalendarDatePicker
                                 Grid.Column="1"
                                 HorizontalAlignment="Stretch"
-                                Date="{Binding editAsset.Fecha, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
+                                Date="{Binding EditAsset.Fecha, Mode=TwoWay, Converter={StaticResource DateOnlyToDateTimeOffsetConverter}}"
                                 IsEnabled="False" />
                         </Grid>
                         <Grid Grid.Row="3">
@@ -277,7 +278,7 @@
                                 DisplayMemberPath="Descripcion"
                                 IsEnabled="False"
                                 ItemsSource="{Binding Categorias}"
-                                SelectedValue="{Binding editAsset.FkCategoria}"
+                                SelectedValue="{Binding EditAsset.FkCategoria, Mode=TwoWay}"
                                 SelectedValuePath="Id" />
                         </Grid>
                     </Grid>
