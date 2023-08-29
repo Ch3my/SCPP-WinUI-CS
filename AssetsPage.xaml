@@ -23,7 +23,7 @@
         <Grid>
             <!--  Importante 3 Columnas porque se considera el GridSplitter  -->
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="550" />
+                <ColumnDefinition Width="620" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
@@ -32,7 +32,7 @@
                 AutoCollapseCountThreshold="4"
                 BladeClosed="BladeClosed">
                 <toolkit:BladeItem
-                    Width="400"
+                    Width="320"
                     VerticalAlignment="Stretch"
                     IsOpen="True"
                     TitleBarVisibility="Collapsed">
@@ -103,7 +103,7 @@
                 </toolkit:BladeItem>
                 <toolkit:BladeItem
                     x:Name="AddAssetBlade"
-                    HorizontalAlignment="Stretch"
+                    Width="300"
                     Header="Agregar Asset"
                     IsOpen="False"
                     TitleBarBackground="CadetBlue">
@@ -203,6 +203,7 @@
                 </toolkit:BladeItem>
                 <toolkit:BladeItem
                     x:Name="EditAssetBlade"
+                    Width="300"
                     HorizontalAlignment="Stretch"
                     Header="Ver Asset"
                     IsOpen="False"

@@ -20,7 +20,7 @@
     <Grid>
         <!--  Importante 3 Columnas porque se considera el GridSplitter  -->
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="550" />
+            <ColumnDefinition Width="650" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
@@ -279,11 +279,10 @@
 
             <toolkit:BladeItem
                 x:Name="AgregarDocumentoBlade"
-                HorizontalAlignment="Stretch"
+                Width="250"
                 Header="Agregar Documento"
                 IsOpen="False"
                 TitleBarBackground="CadetBlue">
-
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -408,11 +407,10 @@
             <!--  Editar DOC  -->
             <toolkit:BladeItem
                 x:Name="EditDocumentoBlade"
-                HorizontalAlignment="Stretch"
+                Width="250"
                 Header="Editar Documento"
                 IsOpen="False"
                 TitleBarBackground="CadetBlue">
-
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
