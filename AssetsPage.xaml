@@ -130,30 +130,23 @@
                                 </Button.KeyboardAccelerators>
                                 <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74E;" />
                             </Button>
-                            <Button Grid.Column="1">
-                                <Button.KeyboardAccelerators>
-                                    <KeyboardAccelerator Key="D" Modifiers="Control" />
-                                </Button.KeyboardAccelerators>
-                                <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE74D;" />
-                            </Button>
                         </Grid>
 
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
                             <TextBlock
-                                x:Name="propositoInput"
                                 Grid.Column="0"
                                 VerticalAlignment="Center"
-                                Text="Proposito" />
+                                Text="Descripción" />
                             <TextBox Grid.Column="1" Text="{Binding NewAsset.Descripcion, Mode=TwoWay}" />
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
@@ -169,7 +162,7 @@
                         </Grid>
                         <Grid Grid.Row="3">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
@@ -233,14 +226,14 @@
 
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
                             <TextBlock
                                 Grid.Column="0"
                                 VerticalAlignment="Center"
-                                Text="Proposito" />
+                                Text="Descripción" />
                             <TextBox
                                 Grid.Column="1"
                                 IsEnabled="False"
@@ -248,7 +241,7 @@
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
@@ -264,7 +257,7 @@
                         </Grid>
                         <Grid Grid.Row="3">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="80" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.ColumnSpacing>10</Grid.ColumnSpacing>
