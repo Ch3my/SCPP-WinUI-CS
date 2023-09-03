@@ -25,7 +25,9 @@ namespace SCPP_WinUI_CS
             if (value is DateOnly date)
             {
                 // Se incluye el offset local sino el Calendar muestra un dia menos UTC - 3 hrs es ayer 
-                return new DateTimeOffset(date.Year, date.Month, date.Day, 0, 0, 0, TimeZoneInfo.Local.GetUtcOffset(DateTimeOffset.UtcNow));
+                return new DateTimeOffset(date.Year, date.Month, date.Day, 0, 0, 0, TimeZoneInfo.Local.BaseUtcOffset);
+                // Esto daba una Hora menos en horario de verano, quiza temporalmente
+                //return new DateTimeOffset(date.Year, date.Month, date.Day, 0, 0, 0, TimeZoneInfo.Local.GetUtcOffset(DateTimeOffset.UtcNow));
             }
 
             return null;
