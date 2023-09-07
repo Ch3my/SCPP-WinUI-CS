@@ -112,21 +112,25 @@ namespace SCPP_WinUI_CS
             }
             List<Asset> assetList = JsonSerializer.Deserialize<List<Asset>>(response.Content.ReadAsStringAsync().Result);
             ViewModel.EditAsset.Clone(assetList.FirstOrDefault());
-            // Quitamos cabecera data:image/png;base64 porque no la necesitamos
-            // la guardamos en DB porque puede ser util
-            string base64Image = ViewModel.EditAsset.AssetData.Split(',')[1];
-            // Decode the Base64 string to a byte array
-            byte[] imageBytes = Convert.FromBase64String(base64Image);
-            BitmapImage bitmapImage = new BitmapImage();
-            using (var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream())
-            {
-                stream.WriteAsync(imageBytes.AsBuffer()).GetResults();
-                stream.Seek(0);
-                bitmapImage.SetSource(stream);
-            }
 
-            // Assign the BitmapImage to the Source property of the Image control
-            imageControl.Source = bitmapImage;
+            if(ViewModel.EditAsset.AssetData != "" && ViewModel.EditAsset.AssetData != null)
+            {
+                // Quitamos cabecera data:image/png;base64 porque no la necesitamos
+                // la guardamos en DB porque puede ser util
+                string base64Image = ViewModel.EditAsset.AssetData.Split(',')[1];
+                // Decode the Base64 string to a byte array
+                byte[] imageBytes = Convert.FromBase64String(base64Image);
+                BitmapImage bitmapImage = new BitmapImage();
+                using (var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream())
+                {
+                    stream.WriteAsync(imageBytes.AsBuffer()).GetResults();
+                    stream.Seek(0);
+                    bitmapImage.SetSource(stream);
+                }
+
+                // Assign the BitmapImage to the Source property of the Image control
+                imageControl.Source = bitmapImage;
+            }
 
             // Abrimos Blade para mostrar info adicional que podria tener
             EditAssetBlade.IsOpen = true;
