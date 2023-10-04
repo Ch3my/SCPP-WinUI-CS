@@ -137,7 +137,12 @@ namespace SCPP_WinUI_CS
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/tipo-docs?sessionHash={App.sessionHash}"
                );
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                FileLogger.AppendToFile("Error DashBoardPage.GetTipoDoc(), API respondio: status "
+                    + response.StatusCode + " " + response.ReasonPhrase);
+                return;
+            }
             List<TipoDoc> tipoDocList = JsonSerializer.Deserialize<List<TipoDoc>>(response.Content.ReadAsStringAsync().Result);
             viewModel.TipoDocs.Clear();
             foreach (TipoDoc t in tipoDocList)
