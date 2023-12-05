@@ -114,7 +114,12 @@ namespace SCPP_WinUI_CS
             HttpResponseMessage response = await App.httpClient.GetAsync(
                $"/categorias?sessionHash={App.sessionHash}"
                );
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                FileLogger.AppendToFile("Error DashBoardPage.GetCategorias(), API respondio: status "
+                    + response.StatusCode + " " + response.ReasonPhrase);
+                return;
+            }
             List<Categoria> categoriaList = JsonSerializer.Deserialize<List<Categoria>>(response.Content.ReadAsStringAsync().Result);
             // Creamos Categoria Todos
             Categoria allCat = new Categoria
