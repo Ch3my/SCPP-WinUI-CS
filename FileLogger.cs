@@ -17,7 +17,7 @@ namespace SCPP_WinUI_CS
             {
                 using (StreamWriter writer = new StreamWriter("log.txt", true))
                 {
-                    writer.WriteLine(text);
+                    writer.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {text}");
                 }
             }
         }
