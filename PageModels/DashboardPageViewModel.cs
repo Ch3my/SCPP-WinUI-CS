@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 using LiveChartsCore.SkiaSharpView;
 using Windows.Globalization.NumberFormatting;
 using static SCPP_WinUI_CS.Dashboard;
+using System.Text.Json.Nodes;
+using LiveChartsCore.SkiaSharpView.VisualElements;
 
 namespace SCPP_WinUI_CS.PageModels
 {
@@ -44,6 +46,7 @@ namespace SCPP_WinUI_CS.PageModels
 
         public DateOnly FechaInicio { get; set; }
         public DateOnly FechaTermino { get; set; }
+        public JsonObject BarGraphData { get; set; }
 
         [ObservableProperty]
         private string _sumaTotalDocs;
@@ -60,5 +63,41 @@ namespace SCPP_WinUI_CS.PageModels
             public string Fecha { get; set; }
             public int Id { get; set; }
         }
+        public LabelVisual CatGraphTitle { get; set; } =
+            new LabelVisual
+            {
+                Text = "Categorias 12 Meses",
+                TextSize = 20,
+                Paint = new SolidColorPaint(SKColors.Gray)
+            };
+        public LabelVisual HistoricTitle { get; set; } =
+            new LabelVisual
+            {
+                Text = "Historico por Tipo Doc",
+                TextSize = 20,
+                Paint = new SolidColorPaint(SKColors.Gray)
+            };
+
+        public IEnumerable<ICartesianAxis> HistoricYAxis { get; set; } = new List<Axis>
+            {
+                new Axis
+                {
+                    // Now the Y axis we will display labels as currency
+                    // LiveCharts provides some common formatters
+                    // in this case we are using the currency formatter.
+                    Labeler = Labelers.Currency,
+                    LabelsPaint = new SolidColorPaint
+                    {
+                        Color =  SKColors.Gray
+                    },
+
+                    // you could also build your own currency formatter
+                    // for example:
+                    // Labeler = (value) => value.ToString("C")
+
+                    // But the one that LiveCharts provides creates shorter labels when
+                    // the amount is in millions or trillions
+                }
+            };
     }
 }

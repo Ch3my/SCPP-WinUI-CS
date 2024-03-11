@@ -549,15 +549,16 @@
 
             <lvc:CartesianChart
                 x:Name="HistoricChart"
-                Title="{x:Bind HistoricTitle}"
+                Title="{Binding HistoricTitle}"
                 Grid.Row="0"
-                YAxes="{x:Bind HistoricYAxis}" />
+                YAxes="{Binding HistoricYAxis}" />
 
             <lvc:CartesianChart
                 x:Name="CategoryChart"
-                Title="{x:Bind CatGraphTitle}"
+                Title="{Binding CatGraphTitle}"
                 Grid.Row="2"
-                YAxes="{x:Bind HistoricYAxis}" />
+                ChartPointPointerDown="ShowBarChartDetails"
+                YAxes="{Binding HistoricYAxis}" />
 
         </Grid>
 

@@ -56,6 +56,14 @@ namespace SCPP_WinUI_CS
     public sealed partial class Dashboard : Page
     {
         DashboardPageViewModel viewModel;
+        // Para formatear dentro del NumberBox Repo de Ejemplo https://github.com/sonnemaf/NumberBoxTest/blob/master/NumberBoxTest/MainPage.xaml.cs
+        private DecimalFormatter IntFormatter { get; } =
+            new DecimalFormatter
+            {
+                IsGrouped = true,
+                FractionDigits = 0,
+                IntegerDigits = 1
+            };
         public Dashboard()
         {
             this.InitializeComponent();
@@ -108,6 +116,9 @@ namespace SCPP_WinUI_CS
             DateOnlyToDateTimeOffsetConverter converter = new DateOnlyToDateTimeOffsetConverter();
             getDocsFormFecIniInput.Date = (DateTimeOffset?)converter.Convert(viewModel.FechaInicio);
             getDocsFormFecTerInput.Date = (DateTimeOffset?)converter.Convert(viewModel.FechaTermino);
+
+            // Resetea la categoria
+            viewModel.Fk_categoria = 0;
         }
         async public void GetCategorias()
         {
@@ -127,9 +138,8 @@ namespace SCPP_WinUI_CS
                 Id = 0,
                 Descripcion = "(Todos)"
             };
-            // Por alguna razon categorias.Clear(); daba null exception asi que resolvimos asi
+
             viewModel.Categorias.Clear();
-            //categorias = new ObservableCollection<Categoria>();
             viewModel.Categorias.Add(allCat);
             foreach (Categoria c in categoriaList)
             {
@@ -139,9 +149,17 @@ namespace SCPP_WinUI_CS
         }
         async public Task GetTipoDoc()
         {
-            HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/tipo-docs?sessionHash={App.sessionHash}"
-               );
+            HttpResponseMessage response = await HttpRetry.ExecuteWithRetry(async () =>
+            {
+                return await App.httpClient.GetAsync($"/tipo-docs?sessionHash={App.sessionHash}");
+            });
+
+            if(response == null)
+            {
+                FileLogger.AppendToFile("Error DashBoardPage.GetTipoDoc(), response es null");
+                return;
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 FileLogger.AppendToFile("Error DashBoardPage.GetTipoDoc(), API respondio: status "
@@ -591,9 +609,10 @@ namespace SCPP_WinUI_CS
                 DocumentosNotification.Show(3000);
                 return;
             }
-            JsonObject resObj = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
+            viewModel.BarGraphData = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
             // aseguramos de tener integers. Desde API podrian venir doubles y se no se ejecuta el grafico porque se cae
-            double[] tmpData = JsonSerializer.Deserialize<double[]>(resObj["amounts"].ToString());
+            // TODO, creo que la DB ahora es INTEGER asi que se podria evitar este paso
+            double[] tmpData = JsonSerializer.Deserialize<double[]>(viewModel.BarGraphData["amounts"].ToString());
             int[] dataArr = new int[tmpData.Length];
             for (int i = 0; i < tmpData.Length; i++)
             {
@@ -601,7 +620,7 @@ namespace SCPP_WinUI_CS
             }
 
             // Cortamos Strings a 5 Char para que se vean las etiquetas
-            List<string> labelsList = JsonSerializer.Deserialize<List<string>>(resObj["labels"].ToString());
+            List<string> labelsList = JsonSerializer.Deserialize<List<string>>(viewModel.BarGraphData["labels"].ToString());
             List<string> cutList = labelsList.Select(s => s.Substring(0, Math.Min(s.Length, 5))).ToList();
 
             IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
@@ -698,51 +717,6 @@ namespace SCPP_WinUI_CS
             getDocsFormFecIniInput.DateChanged += FilterCalendar_DateChanged;
             getDocsFormFecTerInput.DateChanged += FilterCalendar_DateChanged;
         }
-        public LabelVisual CatGraphTitle { get; set; } =
-        new LabelVisual
-        {
-            Text = "Categorias 12 Meses",
-            TextSize = 20,
-            Paint = new SolidColorPaint(SKColors.Gray)
-        };
-        public LabelVisual HistoricTitle { get; set; } =
-            new LabelVisual
-            {
-                Text = "Historico por Tipo Doc",
-                TextSize = 20,
-                Paint = new SolidColorPaint(SKColors.Gray)
-            };
-
-        // Para formatear dentro del NumberBox Repo de Ejemplo https://github.com/sonnemaf/NumberBoxTest/blob/master/NumberBoxTest/MainPage.xaml.cs
-        private DecimalFormatter IntFormatter { get; } =
-            new DecimalFormatter
-            {
-                IsGrouped = true,
-                FractionDigits = 0,
-                IntegerDigits = 1
-            };
-
-        public IEnumerable<ICartesianAxis> HistoricYAxis = new List<Axis>
-            {
-                new Axis
-                {
-                    // Now the Y axis we will display labels as currency
-                    // LiveCharts provides some common formatters
-                    // in this case we are using the currency formatter.
-                    Labeler = Labelers.Currency,
-                    LabelsPaint = new SolidColorPaint
-                    {
-                        Color =  SKColors.Gray
-                    },
-
-                    // you could also build your own currency formatter
-                    // for example:
-                    // Labeler = (value) => value.ToString("C")
-
-                    // But the one that LiveCharts provides creates shorter labels when
-                    // the amount is in millions or trillions
-                }
-            };
 
         private void BladeClosed(object sender, CommunityToolkit.WinUI.UI.Controls.BladeItem e)
         {
@@ -750,6 +724,23 @@ namespace SCPP_WinUI_CS
             {
                 DocsDataGrid.SelectedIndex = -1;
             }
+        }
+
+        private void ShowBarChartDetails(IChartView chart, ChartPoint point)
+        {
+            // NOTA los casting son un poco feos, quiza se pueda mejorar al crear un tipo BarCharData
+            // y que el JsonObject sepa que es de tipo BarCharData y parsee los datos
+            JsonNode dataPoint = viewModel.BarGraphData["data"][(int) point.SecondaryValue];
+            viewModel.Fk_categoria = dataPoint["catId"].GetValue<int>();
+
+            // Seteamos fechas a 12 meses para ser el mismo intervalo que el grafico
+            // Luego el usuario tendria que usar el boton HOME o volver a setearlas
+            DateTime tmpFch = DateTime.Now.AddYears(-1);
+            tmpFch = new DateTime(tmpFch.Year, tmpFch.Month, 1);
+            viewModel.FechaInicio = DateOnly.FromDateTime(tmpFch);
+
+            DateOnlyToDateTimeOffsetConverter converter = new DateOnlyToDateTimeOffsetConverter();
+            getDocsFormFecIniInput.Date = (DateTimeOffset?)converter.Convert(viewModel.FechaInicio);
         }
     }
 }
