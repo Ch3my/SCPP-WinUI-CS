@@ -46,7 +46,7 @@ namespace SCPP_WinUI_CS.PageModels
 
         public DateOnly FechaInicio { get; set; }
         public DateOnly FechaTermino { get; set; }
-        public JsonObject BarGraphData { get; set; }
+        public BarGraphApiStruct BarGraphData { get; set; }
 
         [ObservableProperty]
         private string _sumaTotalDocs;

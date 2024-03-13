@@ -609,19 +609,17 @@ namespace SCPP_WinUI_CS
                 DocumentosNotification.Show(3000);
                 return;
             }
-            viewModel.BarGraphData = JsonSerializer.Deserialize<JsonObject>(response.Content.ReadAsStringAsync().Result);
+            viewModel.BarGraphData = JsonSerializer.Deserialize<BarGraphApiStruct>(response.Content.ReadAsStringAsync().Result);
             // aseguramos de tener integers. Desde API podrian venir doubles y se no se ejecuta el grafico porque se cae
             // TODO, creo que la DB ahora es INTEGER asi que se podria evitar este paso
-            double[] tmpData = JsonSerializer.Deserialize<double[]>(viewModel.BarGraphData["amounts"].ToString());
-            int[] dataArr = new int[tmpData.Length];
-            for (int i = 0; i < tmpData.Length; i++)
+            int[] dataArr = new int[viewModel.BarGraphData.Amounts.Length];
+            for (int i = 0; i < viewModel.BarGraphData.Amounts.Length; i++)
             {
-                dataArr[i] = (int)tmpData[i];
+                dataArr[i] = (int)viewModel.BarGraphData.Amounts[i];
             }
 
             // Cortamos Strings a 5 Char para que se vean las etiquetas
-            List<string> labelsList = JsonSerializer.Deserialize<List<string>>(viewModel.BarGraphData["labels"].ToString());
-            List<string> cutList = labelsList.Select(s => s.Substring(0, Math.Min(s.Length, 5))).ToList();
+            List<string> cutList = viewModel.BarGraphData.Labels.Select(s => s.Substring(0, Math.Min(s.Length, 5))).ToList();
 
             IEnumerable<ICartesianAxis> LocalLabels = new List<ICartesianAxis> {
             new Axis
@@ -651,7 +649,7 @@ namespace SCPP_WinUI_CS
                         int DataIndex = Array.FindIndex(dataArr, x => x == ((int)chartPoint.PrimaryValue));
                         if(DataIndex != -1)
                         {
-                            return $"{labelsList[DataIndex]}: {chartPoint.PrimaryValue:N0}";
+                            return $"{viewModel.BarGraphData.Labels[DataIndex]}: {chartPoint.PrimaryValue:N0}";
                         }
                             return  $"{chartPoint.Context.Series.Name}: {chartPoint.PrimaryValue:N0}";
                         },
@@ -728,10 +726,8 @@ namespace SCPP_WinUI_CS
 
         private void ShowBarChartDetails(IChartView chart, ChartPoint point)
         {
-            // NOTA los casting son un poco feos, quiza se pueda mejorar al crear un tipo BarCharData
-            // y que el JsonObject sepa que es de tipo BarCharData y parsee los datos
-            JsonNode dataPoint = viewModel.BarGraphData["data"][(int) point.SecondaryValue];
-            viewModel.Fk_categoria = dataPoint["catId"].GetValue<int>();
+            DataItem dataPoint = viewModel.BarGraphData.Data[(int)point.SecondaryValue];
+            viewModel.Fk_categoria = dataPoint.CatId;
 
             // Seteamos fechas a 12 meses para ser el mismo intervalo que el grafico
             // Luego el usuario tendria que usar el boton HOME o volver a setearlas
