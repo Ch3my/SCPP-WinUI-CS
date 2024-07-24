@@ -21,3 +21,6 @@ Install mono
 sudo apt install mono
 
 Or install mono-complete ()
+
+# Windows
+Para ejecutar es necesario contar con una version de WinUI compatible, sino tienes una te saldra un mensaje al tratar de ejecutar el Exe. Hacer click en si para que te lleve a la pagina para descargar el paquete, siempre uso el Redistribuitable y instalo segun la arquitectura del sistema operativo

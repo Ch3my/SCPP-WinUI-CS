@@ -122,9 +122,19 @@ namespace SCPP_WinUI_CS
         }
         async public void GetCategorias()
         {
-            HttpResponseMessage response = await App.httpClient.GetAsync(
-               $"/categorias?sessionHash={App.sessionHash}"
-               );
+            HttpResponseMessage response = await HttpRetry.ExecuteWithRetry(async () =>
+            {
+                return await App.httpClient.GetAsync($"/categorias?sessionHash={App.sessionHash}");
+            });
+            //HttpResponseMessage response = await App.httpClient.GetAsync(
+            //   $"/categorias?sessionHash={App.sessionHash}"
+            //   );
+            if (response == null)
+            {
+                FileLogger.AppendToFile("Error DashBoardPage.GetCategorias(), response es null");
+                return;
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 FileLogger.AppendToFile("Error DashBoardPage.GetCategorias(), API respondio: status "
