@@ -17,6 +17,7 @@
     <None Remove="AssetsPage.xaml" />
     <None Remove="ConfigPage.xaml" />
     <None Remove="DashboardPage.xaml" />
+    <None Remove="LoadingPage.xaml" />
     <None Remove="LoginPage.xaml" />
   </ItemGroup>
 
@@ -48,6 +49,11 @@
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="LoadingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="AssetsPage.xaml">

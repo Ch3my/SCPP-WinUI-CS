@@ -46,7 +46,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <!--  Canvas nos permite poder ponerlo encima sin que mueva los otros elementos  -->
-                        <Canvas Grid.Row="0">
+                        <Canvas Grid.Row="0" Canvas.ZIndex="99">
                             <toolkit:InAppNotification
                                 x:Name="DocumentosNotification"
                                 AnimationDuration="00:00:00.1000000"

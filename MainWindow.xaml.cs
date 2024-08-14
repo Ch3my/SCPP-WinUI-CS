@@ -38,6 +38,7 @@ namespace SCPP_WinUI_CS
 
         async public void InitialChecks()
         {
+            contentFrame.Navigate(typeof(LoadingPage));
             if (await CheckSession.CheckValid())
             {
                 // Muestra solo menu LoggedIn
